@@ -8,7 +8,7 @@ type Ring = [number, number][];
 type Province = { name: string; polygons: Ring[][] };
 
 export async function loadProvinces(): Promise<Province[]> {
-  const res = await fetch(URL);
+  const res = await fetch(URL, { signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new Error(`HTTP ${res.status} for province boundaries`);
   const geo = (await res.json()) as {
     features: { properties: { shapeName: string }; geometry: { type: string; coordinates: unknown } }[];

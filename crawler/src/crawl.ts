@@ -39,7 +39,7 @@ const stationId = (name: string) => {
   if (id === undefined) throw new Error(`Unknown station "${name}"`);
   return id;
 };
-Object.keys(extra).forEach(stationId);
+const extraById = new Map(Object.entries(extra).map(([name, x]) => [stationId(name), x]));
 console.log(`${stationList.length} stations`);
 
 // Station pages → trains
@@ -165,7 +165,7 @@ const unlocated: string[] = [];
 const stationsOut = [...servedIds]
   .map((id) => {
     const name = nameById.get(id)!;
-    const x = extra[name] ?? {};
+    const x = extraById.get(id) ?? {};
     const lat = x.lat ?? coords.get(id)?.lat ?? null;
     const lng = x.lng ?? coords.get(id)?.lng ?? null;
     if (x.province && !provinceNames.has(x.province)) errors.push(`${name}: unknown province override "${x.province}"`);

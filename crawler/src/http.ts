@@ -5,6 +5,7 @@ const BASE = 'https://trainschedule.lk';
 const USER_AGENT = 'TrainLankaCrawler/1.0 (+https://github.com/MithunWijayasiri/TrainLanka)';
 const DELAY_MS = 1000;
 const ATTEMPTS = 3;
+const TIMEOUT_MS = 30_000;
 // Dev only: set CACHE_DIR to reuse responses across runs.
 const CACHE_DIR = process.env.CACHE_DIR;
 
@@ -29,7 +30,10 @@ export async function get(path: string): Promise<string> {
 
     let retryReason: string;
     try {
-      const res = await fetch(BASE + path, { headers: { 'User-Agent': USER_AGENT } });
+      const res = await fetch(BASE + path, {
+        headers: { 'User-Agent': USER_AGENT },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
       if (res.ok) {
         const body = await res.text();
         if (cacheFile) {
