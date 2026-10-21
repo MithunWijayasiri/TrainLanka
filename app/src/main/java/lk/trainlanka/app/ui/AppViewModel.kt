@@ -121,10 +121,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissUpdate(version: String) = viewModelScope.launch { prefs.dismissUpdate(version) }
 
-    fun applyUpdate() = viewModelScope.launch {
-        timetables.applyPending()
-        refreshWidget()
-    }
+    fun applyUpdate() = viewModelScope.launch { applyPending() }
 
     /** User-started check: a newer timetable is applied right away. Returns false on failure. */
     suspend fun checkNow(): Boolean {
@@ -132,8 +129,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         try {
             return when (timetables.check()) {
                 is CheckResult.Available -> {
-                    timetables.applyPending()
-                    refreshWidget()
+                    applyPending()
                     true
                 }
                 CheckResult.UpToDate -> true
@@ -144,7 +140,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun refreshWidget() = RouteWidget.refresh(getApplication())
+    /** Applies the pending timetable and clears picked stations it no longer has. */
+    private suspend fun applyPending() {
+        timetables.applyPending()
+        val tt = timetables.await()
+        if (_from.value !in tt.stationsById) _from.value = null
+        if (_to.value !in tt.stationsById) _to.value = null
+        refreshWidget()
+    }
+
+    private suspend fun refreshWidget() =RouteWidget.refresh(getApplication())
 
     private fun valid(list: List<Route>, tt: Timetable?): List<Route> =
         if (tt == null) emptyList()

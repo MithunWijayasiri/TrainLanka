@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -53,7 +55,7 @@ fun TopBar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
-        Modifier.fillMaxWidth().height(64.dp).padding(start = if (onBack == null) 16.dp else 4.dp, end = 4.dp),
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = if (onBack == null) 16.dp else 4.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
@@ -135,7 +137,7 @@ fun PrimaryButton(text: String, enabled: Boolean, modifier: Modifier = Modifier,
     Box(
         modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(28.dp))
             .background(if (enabled) MaterialTheme.colorScheme.primary else colors.disabled)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -153,7 +155,7 @@ fun OutlinedPill(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
         Modifier.height(48.dp).clip(RoundedCornerShape(24.dp))
             .border(1.5.dp, color, RoundedCornerShape(24.dp))
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -166,7 +168,7 @@ fun OutlinedPill(text: String, enabled: Boolean = true, onClick: () -> Unit) {
 fun TextAction(text: String, underline: Boolean = false, color: Color = Color.Unspecified, onClick: () -> Unit) {
     Text(
         text,
-        Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 11.dp),
+        Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp, vertical = 11.dp),
         color = color,
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
@@ -238,7 +240,7 @@ fun EmptyState(title: String, body: String, modifier: Modifier = Modifier) {
 @Composable
 fun CircleIconButton(onClick: () -> Unit, size: Int = 56, content: @Composable () -> Unit) {
     Box(
-        Modifier.size(size.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer).clickable(onClick = onClick),
+        Modifier.size(size.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer).clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
         content = { content() },
     )

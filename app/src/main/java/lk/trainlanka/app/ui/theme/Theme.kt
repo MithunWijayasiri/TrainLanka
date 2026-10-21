@@ -157,12 +157,15 @@ private fun typography(): Typography {
 }
 
 @Composable
+fun ThemeMode.isDark(): Boolean = when (this) {
+    ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+}
+
+@Composable
 fun TrainLankaTheme(mode: ThemeMode, content: @Composable () -> Unit) {
-    val dark = when (mode) {
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-    }
+    val dark = mode.isDark()
     CompositionLocalProvider(LocalAppColors provides if (dark) DarkApp else LightApp) {
         MaterialTheme(
             colorScheme = if (dark) DarkScheme else LightScheme,

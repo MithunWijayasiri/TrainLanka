@@ -40,7 +40,7 @@ class TimetableRepository(private val context: Context, private val prefs: Prefs
             val tt = if (currentFile.exists()) Timetable.parse(currentFile.readText())
             else Timetable.parse(context.assets.open("timetable.json").bufferedReader().use { it.readText() })
             _pendingVersion.value = pendingFile.takeIf { it.exists() }
-                ?.let { Timetable.parse(it.readText()).version }
+                ?.let { f -> runCatching { Timetable.parse(f.readText()).version }.getOrElse { f.delete(); null } }
                 ?.takeIf { it > tt.version }
             tt.also { _timetable.value = it }
         }
