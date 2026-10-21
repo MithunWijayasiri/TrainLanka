@@ -21,8 +21,10 @@ Known limitations, workarounds and deliberately skipped work. Update when adding
 | Times stepping back (typos) | ≤15 min → clamped to previous stop's time; more → train dropped, logged |
 | Trains with no running days (discontinued) or Poya/holiday-only | Dropped, logged. Site search hides them too |
 | Trains listed but hidden by site search (e.g. 2606 Peradeniya → Kandy, section suspended) | Dropped, logged |
-| Stations without coordinates: Eratperiakulam, Anuradhapura Town, Mollipatana, Miriswatte, St kylas, Hataras Kotuwa, Weralugolla | Published with `lat`/`lng`/`province` `null`. App: "Other" group, excluded from nearest station, toast on location actions. Fix via `data/stations-extra.json` |
-| Vandaramullai coordinates outside all province polygons | `province: null`. Fix via `data/stations-extra.json` |
+| Eratperiakulam, Mollipatana, Hataras Kotuwa: no source coordinates | OSM station node coordinates in `data/stations-extra.json` |
+| Vandaramullai source coordinates wrong (outside all provinces, out of route order) | OSM coordinates in `data/stations-extra.json` |
+| Anuradhapura Town, Miriswatte, St kylas: no coordinates anywhere (not in OSM by that name) | Province only in `data/stations-extra.json`; `lat`/`lng` `null` → excluded from nearest station, toast on location actions |
+| Weralugolla: no coordinates; province unsure (on Kandy/Kegalle border) | `lat`/`lng`/`province` `null` → app "Other" group |
 | Coastal stations just outside simplified province polygons | Nearest province if ≤2 km away |
 
 ## Skipped (v1)
