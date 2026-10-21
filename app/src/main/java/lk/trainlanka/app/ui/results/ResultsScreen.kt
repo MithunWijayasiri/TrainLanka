@@ -192,7 +192,7 @@ fun ResultsScreen(
     val isStarred = current in starred
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
         TopBar(
-            title = "${tt.station(current.fromId).name} → ${tt.station(current.toId).name}",
+            title = tt.routeLabel(current),
             onBack = onBack,
             actions = {
                 if (!hasDirect) {

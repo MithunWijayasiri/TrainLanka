@@ -70,8 +70,8 @@ class RouteWidget : GlanceAppWidget() {
         val app = TrainLankaApp.from(context)
         val clock24 = app.prefs.settings.first().clock24
         val tt = app.timetables.await()
-        val route = app.prefs.firstStarred()
-            ?.takeIf { it.fromId in tt.stationsById && it.toId in tt.stationsById }
+        val route = app.prefs.starred.first()
+            .firstOrNull { it.fromId in tt.stationsById && it.toId in tt.stationsById }
         val data = route?.let {
             val trips = withContext(Dispatchers.Default) { nextDepartures(tt, it, nowInColombo(), MAX_ROWS) }
             WidgetData(it, tt, trips, clock24)
@@ -100,7 +100,7 @@ class RouteWidget : GlanceAppWidget() {
         ) {
             Text("★ ", style = TextStyle(color = Star, fontSize = 15.sp))
             Text(
-                text = "${tt.station(route.fromId).name} → ${tt.station(route.toId).name}",
+                text = tt.routeLabel(route),
                 style = TextStyle(color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold),
                 maxLines = 1,
                 modifier = GlanceModifier.defaultWeight(),

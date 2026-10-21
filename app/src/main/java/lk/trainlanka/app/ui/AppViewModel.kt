@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import lk.trainlanka.app.TrainLankaApp
 import lk.trainlanka.app.data.CheckResult
 import lk.trainlanka.app.data.CheckStatus
+import lk.trainlanka.app.data.DEFAULT_OPEN_PROVINCES
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.data.Settings
 import lk.trainlanka.app.data.ThemeMode
@@ -60,7 +61,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val openProvinces: StateFlow<Set<String>> = prefs.openProvinces
-        .stateIn(viewModelScope, SharingStarted.Eagerly, setOf("Western"))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_OPEN_PROVINCES)
 
     private val _from = MutableStateFlow<Int?>(null)
     val from: StateFlow<Int?> = _from.asStateFlow()

@@ -20,7 +20,7 @@ sealed interface CheckResult {
 }
 
 /**
- * Current timetable: last applied download in filesDir, else the bundled asset.
+ * Current timetable: newer of the last applied download in filesDir and the bundled asset.
  * A newer download waits in [pendingFile] until applied, so a failed or partial fetch never replaces good data.
  */
 class TimetableRepository(private val context: Context, private val prefs: Prefs) {
@@ -37,8 +37,9 @@ class TimetableRepository(private val context: Context, private val prefs: Prefs
 
     suspend fun load(): Timetable = mutex.withLock {
         _timetable.value ?: withContext(Dispatchers.IO) {
-            val tt = if (currentFile.exists()) Timetable.parse(currentFile.readText())
-            else Timetable.parse(context.assets.open("timetable.json").bufferedReader().use { it.readText() })
+            val bundled = Timetable.parse(context.assets.open("timetable.json").bufferedReader().use { it.readText() })
+            val downloaded = currentFile.takeIf { it.exists() }?.let { Timetable.parse(it.readText()) }
+            val tt = downloaded?.takeIf { it.version > bundled.version } ?: bundled
             _pendingVersion.value = pendingFile.takeIf { it.exists() }
                 ?.let { f -> runCatching { Timetable.parse(f.readText()).version }.getOrElse { f.delete(); null } }
                 ?.takeIf { it > tt.version }

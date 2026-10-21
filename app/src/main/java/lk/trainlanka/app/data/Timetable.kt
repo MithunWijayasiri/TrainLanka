@@ -54,6 +54,9 @@ data class Timetable(
 
     fun station(id: Int): Station = stationsById.getValue(id)
 
+    /** "From → To" station names. */
+    fun routeLabel(route: Route) = "${station(route.fromId).name} → ${station(route.toId).name}"
+
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 

@@ -272,7 +272,7 @@ private fun ReorderableCollectionItemScope.StarredRow(
                 Icon(Icons.Rounded.DragHandle, contentDescription = "Reorder", tint = AppTheme.colors.faint)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(routeLabel(tt, route), fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(tt.routeLabel(route), fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (departures.size > 1) {
                     Text(
                         "then " + departures.drop(1).joinToString(", ") { formatTime(it.dep, settings.clock24) },
@@ -304,9 +304,7 @@ private fun RecentRow(tt: Timetable, route: Route, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.History, contentDescription = null, tint = AppTheme.colors.muted)
-        Text(routeLabel(tt, route), Modifier.weight(1f), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(tt.routeLabel(route), Modifier.weight(1f), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = AppTheme.colors.muted)
     }
 }
-
-private fun routeLabel(tt: Timetable, route: Route) = "${tt.station(route.fromId).name} → ${tt.station(route.toId).name}"

@@ -73,7 +73,7 @@ fun StopsScreen(vm: AppViewModel, trainId: Int, route: Route, onBack: () -> Unit
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Your trip") }
-                        append(" ${tt.station(route.fromId).name} → ${tt.station(route.toId).name}")
+                        append(" ${tt.routeLabel(route)}")
                     },
                     Modifier.weight(1f),
                     color = MaterialTheme.colorScheme.onSurface,

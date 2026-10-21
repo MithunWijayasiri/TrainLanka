@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 data class Route(val fromId: Int, val toId: Int) {
@@ -22,6 +21,8 @@ data class Route(val fromId: Int, val toId: Int) {
         }
     }
 }
+
+val DEFAULT_OPEN_PROVINCES = setOf("Western")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
@@ -48,9 +49,7 @@ class Prefs(context: Context) {
     }
     val checkStatus: Flow<CheckStatus> = store.data.map { CheckStatus(it[CHECK_AT], it[CHECK_FAILED] ?: false) }
     val dismissedUpdate: Flow<String?> = store.data.map { it[DISMISSED_UPDATE] }
-    val openProvinces: Flow<Set<String>> = store.data.map { it[OPEN_PROVINCES] ?: setOf("Western") }
-
-    suspend fun firstStarred(): Route? = starred.first().firstOrNull()
+    val openProvinces: Flow<Set<String>> = store.data.map { it[OPEN_PROVINCES] ?: DEFAULT_OPEN_PROVINCES }
 
     suspend fun toggleStar(route: Route) = store.edit {
         val list = routes(it[STARRED])
@@ -58,7 +57,12 @@ class Prefs(context: Context) {
         it[RECENT] = join(routes(it[RECENT]) - route)
     }
 
-    suspend fun setStarred(list: List<Route>) = store.edit { it[STARRED] = join(list) }
+    /** Applies the order of [visible]; stored routes missing from it (hidden by the timetable) keep their slots. */
+    suspend fun setStarred(visible: List<Route>) = store.edit {
+        val stored = routes(it[STARRED])
+        val order = visible.filter { r -> r in stored }.iterator()
+        it[STARRED] = join(stored.map { r -> if (r in visible) order.next() else r })
+    }
 
     /** Recent excludes starred routes; newest first. */
     suspend fun addRecent(route: Route) = store.edit {
@@ -74,7 +78,7 @@ class Prefs(context: Context) {
     }
     suspend fun dismissUpdate(version: String) = store.edit { it[DISMISSED_UPDATE] = version }
     suspend fun setProvinceOpen(province: String, open: Boolean) = store.edit {
-        val set = it[OPEN_PROVINCES] ?: setOf("Western")
+        val set = it[OPEN_PROVINCES] ?: DEFAULT_OPEN_PROVINCES
         it[OPEN_PROVINCES] = if (open) set + province else set - province
     }
 

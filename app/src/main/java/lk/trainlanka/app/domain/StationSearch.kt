@@ -30,10 +30,11 @@ fun searchStations(stations: List<Station>, query: String): List<StationMatch> {
 private fun score(s: Station, q: String): Pair<Int, StationMatch>? {
     val name = normalize(s.name)
     val words = s.name.lowercase().split(' ', '-', '(', ')').map(::normalize).filter(String::isNotEmpty)
+    val exactAlias = s.aliases.firstOrNull { normalize(it) == q }
     val alias = s.aliases.firstOrNull { normalize(it).startsWith(q) }
     return when {
         name == q -> 0 to StationMatch(s, MatchKind.NAME, null)
-        alias != null && normalize(alias) == q -> 1 to StationMatch(s, MatchKind.ALIAS, alias)
+        exactAlias != null -> 1 to StationMatch(s, MatchKind.ALIAS, exactAlias)
         name.startsWith(q) -> 2 to StationMatch(s, MatchKind.NAME, null)
         alias != null -> 3 to StationMatch(s, MatchKind.ALIAS, alias)
         words.any { it.startsWith(q) } -> 4 to StationMatch(s, MatchKind.NAME, null)

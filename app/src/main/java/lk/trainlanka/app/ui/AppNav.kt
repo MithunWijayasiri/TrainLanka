@@ -9,6 +9,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.domain.Trip
 import lk.trainlanka.app.ui.home.HomeScreen
@@ -64,10 +66,17 @@ private fun Trip.stopsDest() = StopsDest(
     to = train.stopList[toIndex].stationId,
 )
 
-private fun openFromWidget(vm: AppViewModel, nav: NavHostController, intent: Intent) {
+/** Ignores ids the current timetable no longer has (widget not yet refreshed after an update). */
+private suspend fun openFromWidget(vm: AppViewModel, nav: NavHostController, intent: Intent) {
     if (!intent.hasExtra(EXTRA_FROM)) return
+    val tt = vm.timetable.filterNotNull().first()
     val route = Route(intent.getIntExtra(EXTRA_FROM, 0), intent.getIntExtra(EXTRA_TO, 0))
+    if (route.fromId !in tt.stationsById || route.toId !in tt.stationsById) return
     vm.openRoute(route)
     nav.navigate(ResultsDest(route.fromId, route.toId)) { popUpTo(HomeDest) }
-    if (intent.hasExtra(EXTRA_TRAIN)) nav.navigate(StopsDest(intent.getIntExtra(EXTRA_TRAIN, 0), route.fromId, route.toId))
+    if (!intent.hasExtra(EXTRA_TRAIN)) return
+    val train = tt.trainsById[intent.getIntExtra(EXTRA_TRAIN, 0)] ?: return
+    val stations = train.stopList.map { it.stationId }
+    val from = stations.indexOf(route.fromId)
+    if (from >= 0 && route.toId in stations.drop(from + 1)) nav.navigate(StopsDest(train.id, route.fromId, route.toId))
 }
