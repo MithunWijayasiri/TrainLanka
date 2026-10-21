@@ -1,0 +1,65 @@
+name: Update timetable
+
+on:
+  schedule:
+    - cron: '30 20 * * 0' # Monday 02:00 Asia/Colombo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crawl
+  cancel-in-progress: false
+
+jobs:
+  # No write token here: npm dependencies run in this job.
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: crawler/package-lock.json
+
+      - run: npm ci
+        working-directory: crawler
+
+      - run: npm run crawl
+        working-directory: crawler
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: timetable
+          path: data/timetable.json
+
+  publish:
+    needs: crawl
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: timetable
+          path: data
+
+      - name: Commit timetable
+        run: |
+          git add data/timetable.json
+          if git diff --cached --quiet; then
+            echo "No timetable changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(data): update timetable"
+          git push

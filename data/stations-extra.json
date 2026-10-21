@@ -1,0 +1,10 @@
+{
+  "Colombo Fort": { "aliases": ["Pettah"] },
+  "Anuradhapura Town": { "province": "North Central" },
+  "Eratperiakulam": { "lat": 8.70956, "lng": 80.481 },
+  "Hataras Kotuwa": { "lat": 8.14518, "lng": 80.83912 },
+  "Miriswatte": { "province": "Western" },
+  "Mollipatana": { "lat": 8.44503, "lng": 81.06187 },
+  "St kylas": { "province": "Central" },
+  "Vandaramullai": { "lat": 7.80185, "lng": 81.58358 }
+}
