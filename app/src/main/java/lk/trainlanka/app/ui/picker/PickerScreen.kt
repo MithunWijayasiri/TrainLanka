@@ -28,8 +28,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.automirrored.rounded.KeyboardReturn
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,7 +74,11 @@ import lk.trainlanka.app.ui.rememberNearestStationAction
 import lk.trainlanka.app.ui.theme.AppTheme
 
 @Composable
-fun PickerScreen(vm: AppViewModel, field: PickerField, onDone: () -> Unit) {
+fun PickerScreen(
+    vm: AppViewModel,
+    field: PickerField,
+    onDone: () -> Unit,
+) {
     var query by rememberSaveable { mutableStateOf("") }
     val timetable by vm.timetable.collectAsStateWithLifecycle()
     val useNearest = rememberNearestStationAction(vm, onDone = onDone)
@@ -119,10 +123,11 @@ fun PickerScreen(vm: AppViewModel, field: PickerField, onDone: () -> Unit) {
                 }
             }
             if (!searching) {
-                val headerIndex = remember(byLetter, field) {
-                    var index = if (field == PickerField.FROM) 1 else 0
-                    byLetter.mapValues { (_, stations) -> index.also { index += 1 + stations.size } }
-                }
+                val headerIndex =
+                    remember(byLetter, field) {
+                        var index = if (field == PickerField.FROM) 1 else 0
+                        byLetter.mapValues { (_, stations) -> index.also { index += 1 + stations.size } }
+                    }
                 LetterIndex(headerIndex.keys, Modifier.align(Alignment.CenterEnd)) { letter ->
                     headerIndex[letter]?.let { scope.launch { listState.scrollToItem(it) } }
                 }
@@ -133,7 +138,11 @@ fun PickerScreen(vm: AppViewModel, field: PickerField, onDone: () -> Unit) {
 
 /** Contacts-style A–Z bar: tap or drag to jump; letters without stations are greyed out. */
 @Composable
-private fun LetterIndex(available: Set<Char>, modifier: Modifier, onLetter: (Char) -> Unit) {
+private fun LetterIndex(
+    available: Set<Char>,
+    modifier: Modifier,
+    onLetter: (Char) -> Unit,
+) {
     val currentOnLetter by rememberUpdatedState(onLetter)
     Column(
         modifier.fillMaxHeight().width(28.dp).pointerInput(Unit) {
@@ -174,8 +183,12 @@ private fun SearchField(
     onSubmit: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).height(56.dp)
-            .clip(RoundedCornerShape(28.dp)).background(AppTheme.colors.card),
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(AppTheme.colors.card),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
@@ -203,10 +216,17 @@ private fun SearchField(
 }
 
 @Composable
-private fun NearestRow(showSubtitle: Boolean, onClick: () -> Unit) {
+private fun NearestRow(
+    showSubtitle: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
-        Modifier.fillMaxWidth().height(64.dp).clickable(onClick = onClick)
-            .bottomLine(MaterialTheme.colorScheme.outlineVariant).padding(horizontal = 16.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .clickable(onClick = onClick)
+            .bottomLine(MaterialTheme.colorScheme.outlineVariant)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -231,7 +251,11 @@ private fun NearestRow(showSubtitle: Boolean, onClick: () -> Unit) {
 @Composable
 private fun LetterHeader(letter: Char) {
     Box(
-        Modifier.fillMaxWidth().height(36.dp).background(AppTheme.colors.card).padding(horizontal = 16.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(36.dp)
+            .background(AppTheme.colors.card)
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(letter.toString(), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
@@ -239,10 +263,17 @@ private fun LetterHeader(letter: Char) {
 }
 
 @Composable
-private fun StationRow(name: String, onClick: () -> Unit) {
+private fun StationRow(
+    name: String,
+    onClick: () -> Unit,
+) {
     Box(
-        Modifier.fillMaxWidth().height(48.dp).clickable(onClick = onClick)
-            .bottomLine(MaterialTheme.colorScheme.outlineVariant).padding(start = 16.dp, end = 40.dp), // end clears the letter index
+        Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clickable(onClick = onClick)
+            .bottomLine(MaterialTheme.colorScheme.outlineVariant)
+            .padding(start = 16.dp, end = 40.dp), // end clears the letter index
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(name, fontSize = 15.sp, maxLines = 1)
@@ -250,11 +281,19 @@ private fun StationRow(name: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MatchRow(match: StationMatch, query: String, first: Boolean, onClick: () -> Unit) {
+private fun MatchRow(
+    match: StationMatch,
+    query: String,
+    first: Boolean,
+    onClick: () -> Unit,
+) {
     val base = Modifier.fillMaxWidth().clickable(onClick = onClick)
     Row(
-        if (first) base.height(64.dp).background(AppTheme.colors.highlight).padding(horizontal = 16.dp)
-        else base.height(60.dp).bottomLine(MaterialTheme.colorScheme.outlineVariant).padding(horizontal = 16.dp),
+        if (first) {
+            base.height(64.dp).background(AppTheme.colors.highlight).padding(horizontal = 16.dp)
+        } else {
+            base.height(60.dp).bottomLine(MaterialTheme.colorScheme.outlineVariant).padding(horizontal = 16.dp)
+        },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -278,7 +317,10 @@ private fun NoResults(query: String) {
     }
 }
 
-private fun matchTitle(match: StationMatch, query: String): AnnotatedString {
+private fun matchTitle(
+    match: StationMatch,
+    query: String,
+): AnnotatedString {
     val name = match.station.name
     val bold = SpanStyle(fontWeight = FontWeight.Bold)
     return buildAnnotatedString {
@@ -308,7 +350,8 @@ private fun matchSubtitle(match: StationMatch): String {
     }
 }
 
-private fun Modifier.bottomLine(color: Color) = drawBehind {
-    val y = size.height - 0.5.dp.toPx()
-    drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
-}
+private fun Modifier.bottomLine(color: Color) =
+    drawBehind {
+        val y = size.height - 0.5.dp.toPx()
+        drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+    }

@@ -102,13 +102,14 @@ fun HomeScreen(
     val latestOrder by rememberUpdatedState(starredOrder)
 
     val listState = rememberLazyListState()
-    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
-        val list = starredOrder.toMutableList()
-        val fromIndex = list.indexOfFirst { it.key() == from.key }
-        val toIndex = list.indexOfFirst { it.key() == to.key }
-        list.add(toIndex, list.removeAt(fromIndex))
-        starredOrder = list
-    }
+    val reorderState =
+        rememberReorderableLazyListState(listState) { from, to ->
+            val list = starredOrder.toMutableList()
+            val fromIndex = list.indexOfFirst { it.key() == from.key }
+            val toIndex = list.indexOfFirst { it.key() == to.key }
+            list.add(toIndex, list.removeAt(fromIndex))
+            starredOrder = list
+        }
 
     val open = { route: Route ->
         vm.openRoute(route)
@@ -192,7 +193,10 @@ fun HomeScreen(
 
 /** Swipe left to remove; also exposed as an accessibility action. */
 @Composable
-private fun SwipeToRemove(onRemove: () -> Unit, content: @Composable () -> Unit) {
+private fun SwipeToRemove(
+    onRemove: () -> Unit,
+    content: @Composable () -> Unit,
+) {
     val state = rememberSwipeToDismissBoxState()
     SwipeToDismissBox(
         state,
@@ -206,9 +210,16 @@ private fun SwipeToRemove(onRemove: () -> Unit, content: @Composable () -> Unit)
                 }
             }
         },
-        modifier = Modifier.semantics {
-            customActions = listOf(CustomAccessibilityAction("Remove") { onRemove(); true })
-        },
+        modifier =
+            Modifier.semantics {
+                customActions =
+                    listOf(
+                        CustomAccessibilityAction("Remove") {
+                            onRemove()
+                            true
+                        },
+                    )
+            },
         enableDismissFromStartToEnd = false,
         onDismiss = { onRemove() },
     ) {
@@ -217,14 +228,23 @@ private fun SwipeToRemove(onRemove: () -> Unit, content: @Composable () -> Unit)
 }
 
 @Composable
-private fun SearchCard(vm: AppViewModel, tt: Timetable, onPickStation: (PickerField) -> Unit, onOpenRoute: (Route) -> Unit) {
+private fun SearchCard(
+    vm: AppViewModel,
+    tt: Timetable,
+    onPickStation: (PickerField) -> Unit,
+    onOpenRoute: (Route) -> Unit,
+) {
     val from by vm.from.collectAsStateWithLifecycle()
     val to by vm.to.collectAsStateWithLifecycle()
     val locate = rememberNearestStationAction(vm)
 
     Column(
-        Modifier.padding(horizontal = 12.dp).fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp)).background(AppTheme.colors.card).padding(12.dp),
+        Modifier
+            .padding(horizontal = 12.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AppTheme.colors.card)
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -250,10 +270,17 @@ private fun SearchCard(vm: AppViewModel, tt: Timetable, onPickStation: (PickerFi
 }
 
 @Composable
-private fun StationField(label: String, value: String?, modifier: Modifier, onClick: () -> Unit) {
+private fun StationField(
+    label: String,
+    value: String?,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(8.dp)
     Column(
-        modifier.height(56.dp).clip(shape)
+        modifier
+            .height(56.dp)
+            .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.5.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
@@ -273,7 +300,9 @@ private fun StationField(label: String, value: String?, modifier: Modifier, onCl
 private fun NearestButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Column(
-        Modifier.size(56.dp).clip(shape)
+        Modifier
+            .size(56.dp)
+            .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.5.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick),
@@ -300,7 +329,8 @@ private fun ReorderableCollectionItemScope.StarredRow(
     val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "dragElevation")
 
     Column(
-        Modifier.shadow(elevation)
+        Modifier
+            .shadow(elevation)
             .background(if (isDragging) AppTheme.colors.highlight else Color.Transparent)
             .clickable(onClick = onClick),
     ) {
@@ -341,9 +371,17 @@ private fun ReorderableCollectionItemScope.StarredRow(
 }
 
 @Composable
-private fun RecentRow(tt: Timetable, route: Route, onClick: () -> Unit) {
+private fun RecentRow(
+    tt: Timetable,
+    route: Route,
+    onClick: () -> Unit,
+) {
     Row(
-        Modifier.fillMaxWidth().height(52.dp).clickable(onClick = onClick).padding(horizontal = 16.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

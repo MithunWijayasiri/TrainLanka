@@ -86,31 +86,37 @@ import java.time.ZoneOffset
 
 private sealed interface DayMode {
     data object Today : DayMode
+
     data object Tomorrow : DayMode
-    data class Picked(val date: LocalDate) : DayMode
+
+    data class Picked(
+        val date: LocalDate,
+    ) : DayMode
 }
 
-private val DayModeSaver: Saver<DayMode, String> = Saver(
-    save = {
-        when (it) {
-            DayMode.Today -> "today"
-            DayMode.Tomorrow -> "tomorrow"
-            is DayMode.Picked -> it.date.toString()
-        }
-    },
-    restore = {
-        when (it) {
-            "today" -> DayMode.Today
-            "tomorrow" -> DayMode.Tomorrow
-            else -> DayMode.Picked(LocalDate.parse(it))
-        }
-    },
-)
+private val DayModeSaver: Saver<DayMode, String> =
+    Saver(
+        save = {
+            when (it) {
+                DayMode.Today -> "today"
+                DayMode.Tomorrow -> "tomorrow"
+                is DayMode.Picked -> it.date.toString()
+            }
+        },
+        restore = {
+            when (it) {
+                "today" -> DayMode.Today
+                "tomorrow" -> DayMode.Tomorrow
+                else -> DayMode.Picked(LocalDate.parse(it))
+            }
+        },
+    )
 
-private val RouteSaver = listSaver<Route, Int>(
-    save = { listOf(it.fromId, it.toId) },
-    restore = { Route(it[0], it[1]) },
-)
+private val RouteSaver =
+    listSaver<Route, Int>(
+        save = { listOf(it.fromId, it.toId) },
+        restore = { Route(it[0], it[1]) },
+    )
 
 private data class ResultsData(
     val hero: Trip?,
@@ -122,16 +128,27 @@ private data class ResultsData(
     val after: List<Trip>,
 )
 
-private fun dayName(date: LocalDate, today: LocalDate) =
-    if (date == today.plusDays(1)) "TOMORROW" else formatDay(date).uppercase()
+private fun dayName(
+    date: LocalDate,
+    today: LocalDate,
+) = if (date == today.plusDays(1)) "TOMORROW" else formatDay(date).uppercase()
 
-private fun dayOf(mode: DayMode, today: LocalDate): LocalDate = when (mode) {
-    DayMode.Today -> today
-    DayMode.Tomorrow -> today.plusDays(1)
-    is DayMode.Picked -> mode.date
-}
+private fun dayOf(
+    mode: DayMode,
+    today: LocalDate,
+): LocalDate =
+    when (mode) {
+        DayMode.Today -> today
+        DayMode.Tomorrow -> today.plusDays(1)
+        is DayMode.Picked -> mode.date
+    }
 
-private fun buildData(tt: Timetable, route: Route, mode: DayMode, now: LocalDateTime): ResultsData {
+private fun buildData(
+    tt: Timetable,
+    route: Route,
+    mode: DayMode,
+    now: LocalDateTime,
+): ResultsData {
     val today = now.toLocalDate()
     if (mode == DayMode.Today) {
         val up = upcoming(tt, route, today)
@@ -139,13 +156,33 @@ private fun buildData(tt: Timetable, route: Route, mode: DayMode, now: LocalDate
         val nextDay = up.nextDay
         val caption = nextDay?.let { if (it == today.plusDays(1)) "Tomorrow · ${formatDay(it)}" else formatDay(it) }
         return when {
-            next.isNotEmpty() -> ResultsData(
-                next.first(), "NEXT TRAIN · TODAY", true, departed, next.drop(1), caption, up.nextDayTrips,
-            )
-            nextDay != null -> ResultsData(
-                up.nextDayTrips.first(), "NEXT TRAIN · ${dayName(nextDay, today)}", true, departed, emptyList(), caption, up.nextDayTrips.drop(1),
-            )
-            else -> ResultsData(null, "", false, departed, emptyList(), null, emptyList())
+            next.isNotEmpty() -> {
+                ResultsData(
+                    next.first(),
+                    "NEXT TRAIN · TODAY",
+                    true,
+                    departed,
+                    next.drop(1),
+                    caption,
+                    up.nextDayTrips,
+                )
+            }
+
+            nextDay != null -> {
+                ResultsData(
+                    up.nextDayTrips.first(),
+                    "NEXT TRAIN · ${dayName(nextDay, today)}",
+                    true,
+                    departed,
+                    emptyList(),
+                    caption,
+                    up.nextDayTrips.drop(1),
+                )
+            }
+
+            else -> {
+                ResultsData(null, "", false, departed, emptyList(), null, emptyList())
+            }
         }
     }
     val date = dayOf(mode, today)
@@ -171,7 +208,10 @@ fun ResultsScreen(
 ) {
     val tt = vm.timetable.collectAsStateWithLifecycle().value ?: return
     val now by vm.now.collectAsStateWithLifecycle()
-    val clock24 = vm.settings.collectAsStateWithLifecycle().value.clock24
+    val clock24 =
+        vm.settings
+            .collectAsStateWithLifecycle()
+            .value.clock24
     val starred by vm.starred.collectAsStateWithLifecycle()
 
     var current by rememberSaveable(stateSaver = RouteSaver) { mutableStateOf(route) }
@@ -180,9 +220,10 @@ fun ResultsScreen(
     var showPicker by remember { mutableStateOf(false) }
 
     val hasDirect = remember(tt, current) { hasDirectTrains(tt, current) }
-    val data = remember(tt, current, mode, now, hasDirect) {
-        if (hasDirect) buildData(tt, current, mode, now) else null
-    }
+    val data =
+        remember(tt, current, mode, now, hasDirect) {
+            if (hasDirect) buildData(tt, current, mode, now) else null
+        }
 
     fun swap() {
         current = current.swapped()
@@ -223,7 +264,13 @@ fun ResultsScreen(
         } else {
             val day = dayOf(mode, now.toLocalDate())
             ResultsList(
-                tt, data, now, clock24, day, mode == DayMode.Today, showEarlier,
+                tt,
+                data,
+                now,
+                clock24,
+                day,
+                mode == DayMode.Today,
+                showEarlier,
                 onToggleEarlier = { showEarlier = !showEarlier },
                 onOpenTrip = onOpenTrip,
                 modifier = Modifier.weight(1f),
@@ -263,8 +310,18 @@ private fun ResultsList(
     onOpenTrip: (Trip) -> Unit,
     modifier: Modifier,
 ) {
-    fun destination(trip: Trip) = tt.station(trip.train.stopList.last().stationId).name
-    fun key(prefix: String, trip: Trip) = "$prefix-${trip.train.id}-${trip.startDate}"
+    fun destination(trip: Trip) =
+        tt
+            .station(
+                trip.train.stopList
+                    .last()
+                    .stationId,
+            ).name
+
+    fun key(
+        prefix: String,
+        trip: Trip,
+    ) = "$prefix-${trip.train.id}-${trip.startDate}"
 
     LazyColumn(modifier) {
         if (showEarlier) {
@@ -284,7 +341,10 @@ private fun ResultsList(
         } else {
             item(key = key("h", hero)) {
                 HeroCard(
-                    hero, data.heroLabel, destination(hero), clock24,
+                    hero,
+                    data.heroLabel,
+                    destination(hero),
+                    clock24,
                     countdown = if (data.countdown) formatCountdown(now, hero.dep) else null,
                     onClick = { onOpenTrip(hero) },
                 )
@@ -294,7 +354,11 @@ private fun ResultsList(
             item(key = "earlier-link") {
                 val n = data.departed.size
                 Box(
-                    Modifier.fillMaxWidth().height(48.dp).clickable(onClick = onToggleEarlier).padding(horizontal = 16.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clickable(onClick = onToggleEarlier)
+                        .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Text(
@@ -326,8 +390,13 @@ private fun HeroCard(
 ) {
     val colors = AppTheme.colors
     Column(
-        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 4.dp)
-            .clip(RoundedCornerShape(20.dp)).background(colors.hero).clickable(onClick = onClick).padding(16.dp),
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, top = 4.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(colors.hero)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(label, color = colors.onHero, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.06.em)
@@ -364,7 +433,12 @@ private fun HeroCard(
 }
 
 @Composable
-private fun TrainRow(trip: Trip, destination: String, clock24: Boolean, onClick: () -> Unit) {
+private fun TrainRow(
+    trip: Trip,
+    destination: String,
+    clock24: Boolean,
+    onClick: () -> Unit,
+) {
     val muted = AppTheme.colors.muted
     Column(Modifier.fillMaxWidth()) {
         Column(
@@ -392,7 +466,10 @@ private fun TrainRow(trip: Trip, destination: String, clock24: Boolean, onClick:
 }
 
 @Composable
-private fun DepartedRow(trip: Trip, clock24: Boolean) {
+private fun DepartedRow(
+    trip: Trip,
+    clock24: Boolean,
+) {
     val faint = AppTheme.colors.faint
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -437,17 +514,31 @@ private fun Rollover(caption: String) {
 }
 
 @Composable
-private fun DateBar(mode: DayMode, onSelect: (DayMode) -> Unit, onPick: () -> Unit, onSwap: () -> Unit) {
+private fun DateBar(
+    mode: DayMode,
+    onSelect: (DayMode) -> Unit,
+    onPick: () -> Unit,
+    onSwap: () -> Unit,
+) {
     val shape = RoundedCornerShape(24.dp)
     val outline = MaterialTheme.colorScheme.outline
     val picked = (mode as? DayMode.Picked)?.date
     Row(
-        Modifier.fillMaxWidth().background(AppTheme.colors.card).navigationBarsPadding()
+        Modifier
+            .fillMaxWidth()
+            .background(AppTheme.colors.card)
+            .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(Modifier.weight(1f).height(48.dp).clip(shape).border(1.dp, outline, shape)) {
+        Row(
+            Modifier
+                .weight(1f)
+                .height(48.dp)
+                .clip(shape)
+                .border(1.dp, outline, shape),
+        ) {
             Segment("Today", mode == DayMode.Today) { onSelect(DayMode.Today) }
             VerticalDivider(color = outline)
             Segment("Tomorrow", mode == DayMode.Tomorrow) { onSelect(DayMode.Tomorrow) }
@@ -459,11 +550,19 @@ private fun DateBar(mode: DayMode, onSelect: (DayMode) -> Unit, onPick: () -> Un
 }
 
 @Composable
-private fun RowScope.Segment(label: String, selected: Boolean, dropdown: Boolean = false, onClick: () -> Unit) {
+private fun RowScope.Segment(
+    label: String,
+    selected: Boolean,
+    dropdown: Boolean = false,
+    onClick: () -> Unit,
+) {
     Row(
-        Modifier.weight(1f).fillMaxHeight()
+        Modifier
+            .weight(1f)
+            .fillMaxHeight()
             .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-            .clickable(onClick = onClick).padding(horizontal = 4.dp),
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -483,14 +582,22 @@ private fun RowScope.Segment(label: String, selected: Boolean, dropdown: Boolean
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PickDateDialog(today: LocalDate, initial: LocalDate?, onDismiss: () -> Unit, onPicked: (LocalDate) -> Unit) {
-    val state = rememberDatePickerState(
-        initialSelectedDateMillis = initial?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = utcDate(utcTimeMillis) >= today
-            override fun isSelectableYear(year: Int) = year >= today.year
-        },
-    )
+private fun PickDateDialog(
+    today: LocalDate,
+    initial: LocalDate?,
+    onDismiss: () -> Unit,
+    onPicked: (LocalDate) -> Unit,
+) {
+    val state =
+        rememberDatePickerState(
+            initialSelectedDateMillis = initial?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
+            selectableDates =
+                object : SelectableDates {
+                    override fun isSelectableDate(utcTimeMillis: Long) = utcDate(utcTimeMillis) >= today
+
+                    override fun isSelectableYear(year: Int) = year >= today.year
+                },
+        )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {

@@ -20,7 +20,11 @@ data class Station(
 }
 
 /** One stop: station, arrival and departure in minutes since midnight of the train's start day (may exceed 1440). */
-data class Stop(val stationId: Int, val arr: Int, val dep: Int)
+data class Stop(
+    val stationId: Int,
+    val arr: Int,
+    val dep: Int,
+)
 
 @Serializable
 data class Train(
@@ -36,11 +40,16 @@ data class Train(
     val weekdays: Set<DayOfWeek> by lazy { days.mapNotNull(DAY_TOKENS::get).toSet() }
 
     private companion object {
-        val DAY_TOKENS = mapOf(
-            "Mon" to DayOfWeek.MONDAY, "Tue" to DayOfWeek.TUESDAY, "Wed" to DayOfWeek.WEDNESDAY,
-            "Thu" to DayOfWeek.THURSDAY, "Fri" to DayOfWeek.FRIDAY, "Sat" to DayOfWeek.SATURDAY,
-            "Sun" to DayOfWeek.SUNDAY,
-        )
+        val DAY_TOKENS =
+            mapOf(
+                "Mon" to DayOfWeek.MONDAY,
+                "Tue" to DayOfWeek.TUESDAY,
+                "Wed" to DayOfWeek.WEDNESDAY,
+                "Thu" to DayOfWeek.THURSDAY,
+                "Fri" to DayOfWeek.FRIDAY,
+                "Sat" to DayOfWeek.SATURDAY,
+                "Sun" to DayOfWeek.SUNDAY,
+            )
     }
 }
 

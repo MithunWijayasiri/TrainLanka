@@ -26,7 +26,9 @@ import java.time.LocalDateTime
 
 enum class LocationProblem { DENIED, OFF, NO_FIX }
 
-class AppViewModel(app: Application) : AndroidViewModel(app) {
+class AppViewModel(
+    app: Application,
+) : AndroidViewModel(app) {
     private val graph = TrainLankaApp.from(app)
     private val prefs = graph.prefs
     private val timetables = graph.timetables
@@ -34,31 +36,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val timetable: StateFlow<Timetable?> = timetables.timetable
 
     /** Wall clock in Colombo, ticking on each minute. */
-    val now: StateFlow<LocalDateTime> = flow {
-        while (true) {
-            val t = nowInColombo()
-            emit(t)
-            delay(60_000L - LocalDateTime.now().second * 1000L)
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), nowInColombo())
+    val now: StateFlow<LocalDateTime> =
+        flow {
+            while (true) {
+                val t = nowInColombo()
+                emit(t)
+                delay(60_000L - LocalDateTime.now().second * 1000L)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), nowInColombo())
 
-    val settings: StateFlow<Settings> = prefs.settings
-        .stateIn(viewModelScope, SharingStarted.Eagerly, Settings(ThemeMode.SYSTEM, clock24 = false))
+    val settings: StateFlow<Settings> =
+        prefs.settings
+            .stateIn(viewModelScope, SharingStarted.Eagerly, Settings(ThemeMode.SYSTEM, clock24 = false))
 
     /** Saved routes whose stations still exist in the current timetable. */
-    val starred: StateFlow<List<Route>> = combine(prefs.starred, timetable) { list, tt -> valid(list, tt) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-    val recent: StateFlow<List<Route>> = combine(prefs.recent, timetable) { list, tt -> valid(list, tt) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val starred: StateFlow<List<Route>> =
+        combine(prefs.starred, timetable) { list, tt -> valid(list, tt) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val recent: StateFlow<List<Route>> =
+        combine(prefs.recent, timetable) { list, tt -> valid(list, tt) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val checkStatus: StateFlow<CheckStatus> = prefs.checkStatus
-        .stateIn(viewModelScope, SharingStarted.Eagerly, CheckStatus(null, false))
+    val checkStatus: StateFlow<CheckStatus> =
+        prefs.checkStatus
+            .stateIn(viewModelScope, SharingStarted.Eagerly, CheckStatus(null, false))
     val pendingVersion: StateFlow<String?> = timetables.pendingVersion
 
     /** Pending version to announce in the home banner, unless dismissed. */
-    val bannerVersion: StateFlow<String?> = combine(pendingVersion, prefs.dismissedUpdate) { pending, dismissed ->
-        pending?.takeIf { it != dismissed }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val bannerVersion: StateFlow<String?> =
+        combine(pendingVersion, prefs.dismissedUpdate) { pending, dismissed ->
+            pending?.takeIf { it != dismissed }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _from = MutableStateFlow<Int?>(null)
     val from: StateFlow<Int?> = _from.asStateFlow()
@@ -90,36 +98,41 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _locationProblem.value = problem
     }
 
-    fun openRoute(route: Route) = viewModelScope.launch {
-        _from.value = route.fromId
-        _to.value = route.toId
-        prefs.addRecent(route)
-    }
+    fun openRoute(route: Route) =
+        viewModelScope.launch {
+            _from.value = route.fromId
+            _to.value = route.toId
+            prefs.addRecent(route)
+        }
 
-    fun toggleStar(route: Route) = viewModelScope.launch {
-        prefs.toggleStar(route)
-        refreshWidget()
-    }
+    fun toggleStar(route: Route) =
+        viewModelScope.launch {
+            prefs.toggleStar(route)
+            refreshWidget()
+        }
 
-    fun setStarred(list: List<Route>) = viewModelScope.launch {
-        prefs.setStarred(list)
-        refreshWidget()
-    }
+    fun setStarred(list: List<Route>) =
+        viewModelScope.launch {
+            prefs.setStarred(list)
+            refreshWidget()
+        }
 
     /** Removes a starred or recent route; pass the result to [restoreRoute] to undo. */
     suspend fun removeRoute(route: Route): RemovedRoute = prefs.remove(route).also { refreshWidget() }
 
-    fun restoreRoute(removed: RemovedRoute) = viewModelScope.launch {
-        prefs.restore(removed)
-        refreshWidget()
-    }
+    fun restoreRoute(removed: RemovedRoute) =
+        viewModelScope.launch {
+            prefs.restore(removed)
+            refreshWidget()
+        }
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { prefs.setTheme(mode) }
 
-    fun setClock24(on: Boolean) = viewModelScope.launch {
-        prefs.setClock24(on)
-        refreshWidget()
-    }
+    fun setClock24(on: Boolean) =
+        viewModelScope.launch {
+            prefs.setClock24(on)
+            refreshWidget()
+        }
 
     fun dismissUpdate(version: String) = viewModelScope.launch { prefs.dismissUpdate(version) }
 
@@ -134,8 +147,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     applyPending()
                     true
                 }
-                CheckResult.UpToDate -> true
-                CheckResult.Failed -> false
+
+                CheckResult.UpToDate -> {
+                    true
+                }
+
+                CheckResult.Failed -> {
+                    false
+                }
             }
         } finally {
             _checking.value = false
@@ -151,9 +170,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshWidget()
     }
 
-    private suspend fun refreshWidget() =RouteWidget.refresh(getApplication())
+    private suspend fun refreshWidget() = RouteWidget.refresh(getApplication())
 
-    private fun valid(list: List<Route>, tt: Timetable?): List<Route> =
-        if (tt == null) emptyList()
-        else list.filter { it.fromId in tt.stationsById && it.toId in tt.stationsById }
+    private fun valid(
+        list: List<Route>,
+        tt: Timetable?,
+    ): List<Route> =
+        if (tt == null) {
+            emptyList()
+        } else {
+            list.filter { it.fromId in tt.stationsById && it.toId in tt.stationsById }
+        }
 }

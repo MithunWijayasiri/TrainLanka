@@ -72,7 +72,11 @@ fun TopBar(
 }
 
 @Composable
-fun SectionLabel(text: String, modifier: Modifier = Modifier, trailing: String? = null) {
+fun SectionLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+    trailing: String? = null,
+) {
     Row(modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 6.dp)) {
         Text(text, Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (trailing != null) Text(trailing, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -116,8 +120,9 @@ fun TimeText(
     val split = text.lastIndexOf(' ')
     Text(
         buildAnnotatedString {
-            if (split < 0) append(text)
-            else {
+            if (split < 0) {
+                append(text)
+            } else {
                 append(text.substring(0, split))
                 withStyle(SpanStyle(fontSize = 0.6.em)) { append(text.substring(split)) }
             }
@@ -132,10 +137,18 @@ fun TimeText(
 }
 
 @Composable
-fun PrimaryButton(text: String, enabled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun PrimaryButton(
+    text: String,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val colors = AppTheme.colors
     Box(
-        modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(28.dp))
+        modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp))
             .background(if (enabled) MaterialTheme.colorScheme.primary else colors.disabled)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -150,10 +163,16 @@ fun PrimaryButton(text: String, enabled: Boolean, modifier: Modifier = Modifier,
 }
 
 @Composable
-fun OutlinedPill(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+fun OutlinedPill(
+    text: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
     val color = if (enabled) MaterialTheme.colorScheme.primary else AppTheme.colors.onDisabled
     Box(
-        Modifier.height(48.dp).clip(RoundedCornerShape(24.dp))
+        Modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(24.dp))
             .border(1.5.dp, color, RoundedCornerShape(24.dp))
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp),
@@ -165,10 +184,19 @@ fun OutlinedPill(text: String, enabled: Boolean = true, onClick: () -> Unit) {
 
 /** Text action used in banners and snackbars. */
 @Composable
-fun TextAction(text: String, underline: Boolean = false, color: Color = Color.Unspecified, onClick: () -> Unit) {
+fun TextAction(
+    text: String,
+    underline: Boolean = false,
+    color: Color = Color.Unspecified,
+    onClick: () -> Unit,
+) {
     Text(
         text,
-        Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp, vertical = 11.dp),
+        Modifier
+            .clip(
+                RoundedCornerShape(8.dp),
+            ).clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 11.dp),
         color = color,
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
@@ -180,9 +208,15 @@ const val SNACKBAR_MILLIS = 6_000L
 
 /** Dark notice overlaid at the bottom of a screen. */
 @Composable
-fun Snackbar(text: String, modifier: Modifier = Modifier, action: @Composable RowScope.() -> Unit) {
+fun Snackbar(
+    text: String,
+    modifier: Modifier = Modifier,
+    action: @Composable RowScope.() -> Unit,
+) {
     Row(
-        modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 40.dp)
+        modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, bottom = 40.dp)
             .background(MaterialTheme.colorScheme.inverseSurface, RoundedCornerShape(6.dp))
             .padding(start = 16.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -232,7 +266,11 @@ fun AppIconTile() {
 }
 
 @Composable
-fun EmptyState(title: String, body: String, modifier: Modifier = Modifier) {
+fun EmptyState(
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier.padding(horizontal = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -251,9 +289,18 @@ fun EmptyState(title: String, body: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CircleIconButton(onClick: () -> Unit, size: Int = 56, content: @Composable () -> Unit) {
+fun CircleIconButton(
+    onClick: () -> Unit,
+    size: Int = 56,
+    content: @Composable () -> Unit,
+) {
     Box(
-        Modifier.size(size.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer).clickable(role = Role.Button, onClick = onClick),
+        Modifier
+            .size(
+                size.dp,
+            ).clip(CircleShape)
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
         content = { content() },
     )

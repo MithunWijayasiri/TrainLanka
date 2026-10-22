@@ -62,27 +62,42 @@ private val Divider = ColorProvider(day = Color(0xFFE6E6E6), night = Color(0xFF2
 private val ButtonFill = ColorProvider(day = Color(0xFFE0EFED), night = Color(0xFF26403D))
 private val Star = ColorProvider(day = Color(0xFFE09B12), night = Color(0xFFE09B12))
 
-private class WidgetData(val route: Route, val tt: Timetable, val trips: List<Trip>, val clock24: Boolean)
+private class WidgetData(
+    val route: Route,
+    val tt: Timetable,
+    val trips: List<Trip>,
+    val clock24: Boolean,
+)
 
 class RouteWidget : GlanceAppWidget() {
-
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
+    override suspend fun provideGlance(
+        context: Context,
+        id: GlanceId,
+    ) {
         val app = TrainLankaApp.from(context)
-        val clock24 = app.prefs.settings.first().clock24
+        val clock24 =
+            app.prefs.settings
+                .first()
+                .clock24
         val tt = app.timetables.await()
-        val route = app.prefs.starred.first()
-            .firstOrNull { it.fromId in tt.stationsById && it.toId in tt.stationsById }
-        val data = route?.let {
-            val trips = withContext(Dispatchers.Default) { nextDepartures(tt, it, nowInColombo(), MAX_ROWS) }
-            WidgetData(it, tt, trips, clock24)
-        }
+        val route =
+            app.prefs.starred
+                .first()
+                .firstOrNull { it.fromId in tt.stationsById && it.toId in tt.stationsById }
+        val data =
+            route?.let {
+                val trips = withContext(Dispatchers.Default) { nextDepartures(tt, it, nowInColombo(), MAX_ROWS) }
+                WidgetData(it, tt, trips, clock24)
+            }
         scheduleRefresh(context, data?.trips?.firstOrNull())
         provideContent {
             Column(
-                modifier = GlanceModifier.fillMaxSize()
-                    .background(Surface)
-                    .cornerRadius(24.dp)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                modifier =
+                    GlanceModifier
+                        .fillMaxSize()
+                        .background(Surface)
+                        .cornerRadius(24.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
             ) {
                 if (data == null) EmptyState(context) else RouteContent(context, data)
             }
@@ -90,12 +105,18 @@ class RouteWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun ColumnScope.RouteContent(context: Context, data: WidgetData) {
+    private fun ColumnScope.RouteContent(
+        context: Context,
+        data: WidgetData,
+    ) {
         val route = data.route
         val tt = data.tt
         Row(
-            modifier = GlanceModifier.fillMaxWidth().padding(bottom = 6.dp)
-                .clickable(actionStartActivity(routeIntent(context, route))),
+            modifier =
+                GlanceModifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp)
+                    .clickable(actionStartActivity(routeIntent(context, route))),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("★ ", style = TextStyle(color = Star, fontSize = 15.sp))
@@ -115,10 +136,19 @@ class RouteWidget : GlanceAppWidget() {
         }
         data.trips.forEach { trip ->
             Box(modifier = GlanceModifier.fillMaxWidth().height(1.dp).background(Divider)) {}
-            val destination = tt.station(trip.train.stopList.last().stationId).name
+            val destination =
+                tt
+                    .station(
+                        trip.train.stopList
+                            .last()
+                            .stationId,
+                    ).name
             Row(
-                modifier = GlanceModifier.fillMaxWidth().defaultWeight()
-                    .clickable(actionStartActivity(tripIntent(context, route, trip))),
+                modifier =
+                    GlanceModifier
+                        .fillMaxWidth()
+                        .defaultWeight()
+                        .clickable(actionStartActivity(tripIntent(context, route, trip))),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -151,11 +181,12 @@ class RouteWidget : GlanceAppWidget() {
                 modifier = GlanceModifier.padding(top = 2.dp, bottom = 8.dp),
             )
             Box(
-                modifier = GlanceModifier
-                    .background(ButtonFill)
-                    .cornerRadius(20.dp)
-                    .padding(horizontal = 18.dp, vertical = 8.dp)
-                    .clickable(actionStartActivity(baseIntent(context))),
+                modifier =
+                    GlanceModifier
+                        .background(ButtonFill)
+                        .cornerRadius(20.dp)
+                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                        .clickable(actionStartActivity(baseIntent(context))),
             ) {
                 Text("Open app", style = TextStyle(color = Teal, fontSize = 13.sp, fontWeight = FontWeight.Bold))
             }
@@ -173,7 +204,10 @@ class RouteWidgetReceiver : GlanceAppWidgetReceiver() {
 
 /** Fired by the alarm set in [scheduleRefresh]. */
 class WidgetRefreshReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         val pending = goAsync()
         TrainLankaApp.from(context).scope.launch {
             try {
@@ -185,33 +219,50 @@ class WidgetRefreshReceiver : BroadcastReceiver() {
     }
 }
 
-private fun baseIntent(context: Context) = Intent(context, MainActivity::class.java)
-    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+private fun baseIntent(context: Context) =
+    Intent(context, MainActivity::class.java)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
-private fun routeIntent(context: Context, route: Route) = baseIntent(context)
+private fun routeIntent(
+    context: Context,
+    route: Route,
+) = baseIntent(context)
     .setData(Uri.parse("trainlanka://route/${route.fromId}/${route.toId}"))
     .putExtra(EXTRA_FROM, route.fromId)
     .putExtra(EXTRA_TO, route.toId)
 
-private fun tripIntent(context: Context, route: Route, trip: Trip) = baseIntent(context)
+private fun tripIntent(
+    context: Context,
+    route: Route,
+    trip: Trip,
+) = baseIntent(context)
     .setData(Uri.parse("trainlanka://trip/${trip.train.id}/${trip.startDate}"))
     .putExtra(EXTRA_FROM, route.fromId)
     .putExtra(EXTRA_TO, route.toId)
     .putExtra(EXTRA_TRAIN, trip.train.id)
 
 // Inexact alarm one minute after the first listed departure, so the list drops it.
-private fun scheduleRefresh(context: Context, first: Trip?) {
+private fun scheduleRefresh(
+    context: Context,
+    first: Trip?,
+) {
     val alarms = context.getSystemService(AlarmManager::class.java)
-    val pending = PendingIntent.getBroadcast(
-        context,
-        0,
-        Intent(context, WidgetRefreshReceiver::class.java),
-        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-    )
+    val pending =
+        PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, WidgetRefreshReceiver::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
     if (first == null) {
         alarms.cancel(pending)
         return
     }
-    val at = first.dep.plusMinutes(1).atZone(COLOMBO).toInstant().toEpochMilli()
+    val at =
+        first.dep
+            .plusMinutes(1)
+            .atZone(COLOMBO)
+            .toInstant()
+            .toEpochMilli()
     alarms.set(AlarmManager.RTC, at, pending)
 }

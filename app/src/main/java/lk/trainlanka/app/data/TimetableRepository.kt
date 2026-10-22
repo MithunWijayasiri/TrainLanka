@@ -15,7 +15,11 @@ import java.net.URL
 
 sealed interface CheckResult {
     data object UpToDate : CheckResult
-    data class Available(val version: String) : CheckResult
+
+    data class Available(
+        val version: String,
+    ) : CheckResult
+
     data object Failed : CheckResult
 }
 
@@ -23,7 +27,10 @@ sealed interface CheckResult {
  * Current timetable: newer of the last applied download in filesDir and the bundled asset.
  * A newer download waits in [pendingFile] until applied, so a failed or partial fetch never replaces good data.
  */
-class TimetableRepository(private val context: Context, private val prefs: Prefs) {
+class TimetableRepository(
+    private val context: Context,
+    private val prefs: Prefs,
+) {
     private val currentFile = File(context.filesDir, "timetable.json")
     private val pendingFile = File(context.filesDir, "timetable-pending.json")
     private val mutex = Mutex()
@@ -32,62 +39,85 @@ class TimetableRepository(private val context: Context, private val prefs: Prefs
     val timetable: StateFlow<Timetable?> = _timetable.asStateFlow()
 
     private val _pendingVersion = MutableStateFlow<String?>(null)
+
     /** Version of a downloaded, not yet applied timetable. */
     val pendingVersion: StateFlow<String?> = _pendingVersion.asStateFlow()
 
-    suspend fun load(): Timetable = mutex.withLock {
-        _timetable.value ?: withContext(Dispatchers.IO) {
-            val bundled = Timetable.parse(context.assets.open("timetable.json").bufferedReader().use { it.readText() })
-            val downloaded = currentFile.takeIf { it.exists() }
-                ?.let { f -> runCatching { Timetable.parse(f.readText()) }.getOrElse { f.delete(); null } }
-            val tt = downloaded?.takeIf { it.version > bundled.version } ?: bundled
-            _pendingVersion.value = pendingFile.takeIf { it.exists() }
-                ?.let { f -> runCatching { Timetable.parse(f.readText()).version }.getOrElse { f.delete(); null } }
-                ?.takeIf { it > tt.version }
-            tt.also { _timetable.value = it }
+    suspend fun load(): Timetable =
+        mutex.withLock {
+            _timetable.value ?: withContext(Dispatchers.IO) {
+                val bundled =
+                    Timetable.parse(
+                        context.assets
+                            .open("timetable.json")
+                            .bufferedReader()
+                            .use { it.readText() },
+                    )
+                val downloaded =
+                    currentFile
+                        .takeIf { it.exists() }
+                        ?.let { f ->
+                            runCatching { Timetable.parse(f.readText()) }.getOrElse {
+                                f.delete()
+                                null
+                            }
+                        }
+                val tt = downloaded?.takeIf { it.version > bundled.version } ?: bundled
+                _pendingVersion.value =
+                    pendingFile
+                        .takeIf { it.exists() }
+                        ?.let { f ->
+                            runCatching { Timetable.parse(f.readText()).version }.getOrElse {
+                                f.delete()
+                                null
+                            }
+                        }?.takeIf { it > tt.version }
+                tt.also { _timetable.value = it }
+            }
         }
-    }
 
     suspend fun await(): Timetable = _timetable.value ?: load()
 
     /** Downloads the published timetable; a newer one is stored as pending. Records the check result. */
     suspend fun check(): CheckResult {
         val current = await()
-        val result = try {
-            val text = withContext(Dispatchers.IO) { download() }
-            val remote = Timetable.parse(text)
-            if (remote.version > current.version) {
-                mutex.withLock {
-                    withContext(Dispatchers.IO) {
-                        val tmp = File(context.filesDir, "timetable-download.json")
-                        tmp.writeText(text)
-                        check(tmp.renameTo(pendingFile)) { "Could not store downloaded timetable" }
+        val result =
+            try {
+                val text = withContext(Dispatchers.IO) { download() }
+                val remote = Timetable.parse(text)
+                if (remote.version > current.version) {
+                    mutex.withLock {
+                        withContext(Dispatchers.IO) {
+                            val tmp = File(context.filesDir, "timetable-download.json")
+                            tmp.writeText(text)
+                            check(tmp.renameTo(pendingFile)) { "Could not store downloaded timetable" }
+                        }
+                        _pendingVersion.value = remote.version
                     }
-                    _pendingVersion.value = remote.version
+                    CheckResult.Available(remote.version)
+                } else {
+                    CheckResult.UpToDate
                 }
-                CheckResult.Available(remote.version)
-            } else {
-                CheckResult.UpToDate
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                CheckResult.Failed
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            CheckResult.Failed
-        }
         prefs.setCheck(System.currentTimeMillis(), failed = result == CheckResult.Failed)
         return result
     }
 
     /** Switches to the pending timetable. */
-    suspend fun applyPending() = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            if (!pendingFile.exists()) return@withContext
-            val tt = Timetable.parse(pendingFile.readText())
-            check(pendingFile.renameTo(currentFile)) { "Could not apply downloaded timetable" }
-            _timetable.value = tt
-            _pendingVersion.value = null
+    suspend fun applyPending() =
+        mutex.withLock {
+            withContext(Dispatchers.IO) {
+                if (!pendingFile.exists()) return@withContext
+                val tt = Timetable.parse(pendingFile.readText())
+                check(pendingFile.renameTo(currentFile)) { "Could not apply downloaded timetable" }
+                _timetable.value = tt
+                _pendingVersion.value = null
+            }
         }
-    }
 
     private fun download(): String {
         val conn = URL(DATA_URL).openConnection() as HttpURLConnection

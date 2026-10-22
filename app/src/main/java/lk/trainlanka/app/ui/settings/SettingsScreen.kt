@@ -51,7 +51,10 @@ import lk.trainlanka.app.ui.TopBar
 import lk.trainlanka.app.ui.theme.AppTheme
 
 @Composable
-fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
+fun SettingsScreen(
+    vm: AppViewModel,
+    onBack: () -> Unit,
+) {
     val version = (vm.timetable.collectAsStateWithLifecycle().value ?: return).version
     val settings by vm.settings.collectAsStateWithLifecycle()
     val status by vm.checkStatus.collectAsStateWithLifecycle()
@@ -99,17 +102,26 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Text("Version ${version.replace('-', '.')}", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
                     Text("Timetable dated ${formatVersionDate(version)} · stored offline", color = colors.muted, fontSize = 13.sp)
                     val checkedAt = status.at
-                    val (statusText, statusColor) = when {
-                        checkedAt == null -> "Not checked yet" to colors.muted
-                        status.failed ->
-                            "Last check failed ${formatCheckTime(checkedAt, settings.clock24)} ✕" to MaterialTheme.colorScheme.error
-                        pendingVersion != null ->
-                            "Last checked ${formatCheckTime(checkedAt, settings.clock24)} · New timetable available" to
-                                MaterialTheme.colorScheme.primary
-                        else ->
-                            "Last checked ${formatCheckTime(checkedAt, settings.clock24)} · Up to date ✓" to
-                                MaterialTheme.colorScheme.primary
-                    }
+                    val (statusText, statusColor) =
+                        when {
+                            checkedAt == null -> {
+                                "Not checked yet" to colors.muted
+                            }
+
+                            status.failed -> {
+                                "Last check failed ${formatCheckTime(checkedAt, settings.clock24)} ✕" to MaterialTheme.colorScheme.error
+                            }
+
+                            pendingVersion != null -> {
+                                "Last checked ${formatCheckTime(checkedAt, settings.clock24)} · New timetable available" to
+                                    MaterialTheme.colorScheme.primary
+                            }
+
+                            else -> {
+                                "Last checked ${formatCheckTime(checkedAt, settings.clock24)} · Up to date ✓" to
+                                    MaterialTheme.colorScheme.primary
+                            }
+                        }
                     Text(statusText, color = statusColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
                 Box(Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp)) {
@@ -144,16 +156,25 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
 private fun Divider() = HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
 @Composable
-private fun RadioRow(label: String, selected: Boolean, enabled: Boolean = true, comingSoon: Boolean = false, onClick: () -> Unit) {
+private fun RadioRow(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean = true,
+    comingSoon: Boolean = false,
+    onClick: () -> Unit,
+) {
     val faint = AppTheme.colors.faint
     val primary = MaterialTheme.colorScheme.primary
-    val ring = when {
-        !enabled -> faint
-        selected -> primary
-        else -> MaterialTheme.colorScheme.outline
-    }
+    val ring =
+        when {
+            !enabled -> faint
+            selected -> primary
+            else -> MaterialTheme.colorScheme.outline
+        }
     Row(
-        Modifier.fillMaxWidth().height(56.dp)
+        Modifier
+            .fillMaxWidth()
+            .height(56.dp)
             .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
