@@ -190,7 +190,7 @@ fun HomeScreen(
         }
         removed?.let { r ->
             Snackbar(if (r.starred) "Removed from starred" else "Removed from recent", Modifier.align(Alignment.BottomCenter)) {
-                TextAction("Undo", underline = true, color = AppTheme.colors.amber) {
+                TextAction("Undo", underline = true, color = MaterialTheme.colorScheme.inversePrimary) {
                     removed = null
                     vm.restoreRoute(r)
                 }

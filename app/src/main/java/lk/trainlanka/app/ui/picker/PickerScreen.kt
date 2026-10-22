@@ -53,6 +53,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -109,7 +111,10 @@ fun PickerScreen(
     Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
         SearchField(
             query = query,
-            onQueryChange = { query = it },
+            onQueryChange = {
+                query = it
+                scope.launch { listState.scrollToItem(0) }
+            },
             placeholder = if (field == PickerField.FROM) "Where are you boarding?" else "Where are you going?",
             onBack = onDone,
             onSubmit = { matches.firstOrNull()?.let { pick(it.station.id) } },
@@ -171,8 +176,20 @@ private fun LetterIndex(
         verticalArrangement = Arrangement.SpaceEvenly,
     ) {
         for (letter in LETTERS) {
+            val jump =
+                if (letter in available) {
+                    Modifier.semantics {
+                        onClick("Jump to $letter") {
+                            currentOnLetter(letter)
+                            true
+                        }
+                    }
+                } else {
+                    Modifier
+                }
             Text(
                 letter.toString(),
+                jump,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (letter in available) MaterialTheme.colorScheme.primary else AppTheme.colors.faint,
