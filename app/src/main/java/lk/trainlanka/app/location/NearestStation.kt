@@ -11,6 +11,10 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import lk.trainlanka.app.data.Station
 import kotlin.coroutines.resume
 
+/** Whether the phone's location setting is on. */
+fun isLocationEnabled(context: Context) =
+    LocationManagerCompat.isLocationEnabled(context.getSystemService(LocationManager::class.java))
+
 /** One-shot foreground fix; null when location is off or unavailable. Caller must hold a location permission. */
 @SuppressLint("MissingPermission")
 suspend fun currentLocation(context: Context): Location? {

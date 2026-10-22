@@ -6,17 +6,11 @@ enum class MatchKind { NAME, ALIAS, FUZZY }
 
 data class StationMatch(val station: Station, val kind: MatchKind, val alias: String?)
 
-val PROVINCE_ORDER = listOf(
-    "Western", "Central", "Southern", "Northern", "Eastern",
-    "North Western", "North Central", "Uva", "Sabaragamuwa",
-)
 const val OTHER_PROVINCE = "Other"
 
-/** Stations grouped by province in [PROVINCE_ORDER], null province last as [OTHER_PROVINCE]. */
-fun groupByProvince(stations: List<Station>): List<Pair<String, List<Station>>> {
-    val groups = stations.groupBy { it.province ?: OTHER_PROVINCE }
-    return (PROVINCE_ORDER + OTHER_PROVINCE).mapNotNull { p -> groups[p]?.let { p to it.sortedBy(Station::name) } }
-}
+/** Stations A–Z, grouped by the first letter of the name in upper case. */
+fun groupByLetter(stations: List<Station>): Map<Char, List<Station>> =
+    stations.sortedBy { it.name.lowercase() }.groupBy { it.name.first().uppercaseChar() }
 
 /** Ranked: exact name → alias → name prefix → word prefix → substring → fuzzy. */
 fun searchStations(stations: List<Station>, query: String): List<StationMatch> {

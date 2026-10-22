@@ -43,12 +43,12 @@ import lk.trainlanka.app.domain.formatCheckTime
 import lk.trainlanka.app.domain.formatVersionDate
 import lk.trainlanka.app.ui.AppViewModel
 import lk.trainlanka.app.ui.OutlinedPill
+import lk.trainlanka.app.ui.SNACKBAR_MILLIS
 import lk.trainlanka.app.ui.SectionLabel
+import lk.trainlanka.app.ui.Snackbar
 import lk.trainlanka.app.ui.TextAction
 import lk.trainlanka.app.ui.TopBar
 import lk.trainlanka.app.ui.theme.AppTheme
-
-private const val SNACKBAR_MILLIS = 6_000L
 
 @Composable
 fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
@@ -132,20 +132,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
 
             if (failureShown) {
-                Row(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 40.dp)
-                        .background(MaterialTheme.colorScheme.inverseSurface, RoundedCornerShape(6.dp))
-                        .padding(start = 16.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        "Couldn’t update. Still using the saved timetable.",
-                        Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.inverseOnSurface,
-                        fontSize = 14.sp,
-                        lineHeight = 19.sp,
-                    )
+                Snackbar("Couldn’t update. Still using the saved timetable.", Modifier.align(Alignment.BottomCenter)) {
                     TextAction("Retry", underline = true, color = colors.amber, onClick = check)
                 }
             }

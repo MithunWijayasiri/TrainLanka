@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MyLocation
@@ -30,11 +31,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,12 +48,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import lk.trainlanka.app.data.RemovedRoute
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.data.Timetable
 import lk.trainlanka.app.domain.formatCountdown
@@ -58,15 +69,15 @@ import lk.trainlanka.app.ui.AppViewModel
 import lk.trainlanka.app.ui.Banner
 import lk.trainlanka.app.ui.CircleIconButton
 import lk.trainlanka.app.ui.EmptyState
-import lk.trainlanka.app.ui.InfoIcon
-import lk.trainlanka.app.ui.LocationProblem
+import lk.trainlanka.app.ui.LocationProblemDialog
 import lk.trainlanka.app.ui.PickerField
 import lk.trainlanka.app.ui.PrimaryButton
+import lk.trainlanka.app.ui.SNACKBAR_MILLIS
 import lk.trainlanka.app.ui.SectionLabel
+import lk.trainlanka.app.ui.Snackbar
 import lk.trainlanka.app.ui.TextAction
 import lk.trainlanka.app.ui.TimeText
 import lk.trainlanka.app.ui.TopBar
-import lk.trainlanka.app.ui.openAppSettings
 import lk.trainlanka.app.ui.rememberNearestStationAction
 import lk.trainlanka.app.ui.theme.AppTheme
 import sh.calvin.reorderable.ReorderableCollectionItemScope
@@ -84,6 +95,7 @@ fun HomeScreen(
     val starred by vm.starred.collectAsStateWithLifecycle()
     val recent by vm.recent.collectAsStateWithLifecycle()
     val bannerVersion by vm.bannerVersion.collectAsStateWithLifecycle()
+    val locationProblem by vm.locationProblem.collectAsStateWithLifecycle()
 
     // Local order while dragging; re-synced whenever the stored order changes.
     var starredOrder by remember(starred) { mutableStateOf(starred) }
@@ -103,52 +115,104 @@ fun HomeScreen(
         onOpenRoute(route)
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        TopBar(
-            title = "Train Lanka",
-            titleColor = MaterialTheme.colorScheme.primary,
-            titleSize = 22.sp,
-            actions = {
-                IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = "Settings") }
-            },
-        )
-        val timetable = tt ?: return@Column
-        bannerVersion?.let { version ->
-            Banner(
-                icon = { Icon(Icons.Outlined.Download, contentDescription = null, Modifier.size(20.dp)) },
-                text = "New timetable available (${formatVersionDate(version)}). You can keep using the current one.",
-            ) {
-                TextAction("Later") { vm.dismissUpdate(version) }
-                TextAction("Update", underline = true) { vm.applyUpdate() }
-            }
+    val scope = rememberCoroutineScope()
+    var removed by remember { mutableStateOf<RemovedRoute?>(null) }
+    LaunchedEffect(removed) {
+        if (removed != null) {
+            delay(SNACKBAR_MILLIS)
+            removed = null
         }
-        if (starred.isEmpty() && recent.isEmpty()) {
-            SearchCard(vm, timetable, onPickStation, onOpenRoute)
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                EmptyState(
-                    "No saved routes yet",
-                    "Search a route, then tap ☆ to star it. Starred and recent routes show up here with their next train.",
-                )
+    }
+    val remove = { route: Route -> scope.launch { removed = vm.removeRoute(route) } }
+
+    locationProblem?.let { LocationProblemDialog(it) { vm.setLocationProblem(null) } }
+
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
+        Column(Modifier.fillMaxSize()) {
+            TopBar(
+                title = "Train Lanka",
+                titleColor = MaterialTheme.colorScheme.primary,
+                titleSize = 22.sp,
+                actions = {
+                    IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = "Settings") }
+                },
+            )
+            val timetable = tt ?: return@Column
+            bannerVersion?.let { version ->
+                Banner(
+                    icon = { Icon(Icons.Outlined.Download, contentDescription = null, Modifier.size(20.dp)) },
+                    text = "New timetable available (${formatVersionDate(version)}). You can keep using the current one.",
+                ) {
+                    TextAction("Later") { vm.dismissUpdate(version) }
+                    TextAction("Update", underline = true) { vm.applyUpdate() }
+                }
             }
-            return@Column
-        }
-        LazyColumn(Modifier.weight(1f), state = listState) {
-            item(key = "search") { SearchCard(vm, timetable, onPickStation, onOpenRoute) }
-            if (starredOrder.isNotEmpty()) {
-                item(key = "starred-label") { SectionLabel("STARRED", trailing = "drag ≡ to reorder") }
-                items(starredOrder, key = { it.key() }) { route ->
-                    ReorderableItem(reorderState, key = route.key()) { isDragging ->
-                        StarredRow(vm, timetable, route, isDragging, onDragStopped = { vm.setStarred(latestOrder) }) { open(route) }
+            if (starred.isEmpty() && recent.isEmpty()) {
+                SearchCard(vm, timetable, onPickStation, onOpenRoute)
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    EmptyState(
+                        "No saved routes yet",
+                        "Search a route, then tap ☆ to star it. Starred and recent routes show up here with their next train.",
+                    )
+                }
+                return@Column
+            }
+            LazyColumn(Modifier.weight(1f), state = listState) {
+                item(key = "search") { SearchCard(vm, timetable, onPickStation, onOpenRoute) }
+                if (starredOrder.isNotEmpty()) {
+                    item(key = "starred-label") { SectionLabel("STARRED", trailing = "drag ≡ to reorder") }
+                    items(starredOrder, key = { it.key() }) { route ->
+                        ReorderableItem(reorderState, key = route.key()) { isDragging ->
+                            SwipeToRemove(onRemove = { remove(route) }) {
+                                StarredRow(vm, timetable, route, isDragging, onDragStopped = { vm.setStarred(latestOrder) }) { open(route) }
+                            }
+                        }
+                    }
+                }
+                if (recent.isNotEmpty()) {
+                    item(key = "recent-label") { SectionLabel("RECENT") }
+                    items(recent, key = { "recent-${it.key()}" }) { route ->
+                        SwipeToRemove(onRemove = { remove(route) }) {
+                            RecentRow(timetable, route) { open(route) }
+                        }
                     }
                 }
             }
-            if (recent.isNotEmpty()) {
-                item(key = "recent-label") { SectionLabel("RECENT") }
-                items(recent, key = { "recent-${it.key()}" }) { route ->
-                    RecentRow(timetable, route) { open(route) }
+        }
+        removed?.let { r ->
+            Snackbar(if (r.starred) "Removed from starred" else "Removed from recent", Modifier.align(Alignment.BottomCenter)) {
+                TextAction("Undo", underline = true, color = AppTheme.colors.amber) {
+                    removed = null
+                    vm.restoreRoute(r)
                 }
             }
         }
+    }
+}
+
+/** Swipe left to remove; also exposed as an accessibility action. */
+@Composable
+private fun SwipeToRemove(onRemove: () -> Unit, content: @Composable () -> Unit) {
+    val state = rememberSwipeToDismissBoxState()
+    SwipeToDismissBox(
+        state,
+        backgroundContent = {
+            if (state.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                Box(
+                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.error).padding(end = 20.dp),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    Icon(Icons.Rounded.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onError)
+                }
+            }
+        },
+        modifier = Modifier.semantics {
+            customActions = listOf(CustomAccessibilityAction("Remove") { onRemove(); true })
+        },
+        enableDismissFromStartToEnd = false,
+        onDismiss = { onRemove() },
+    ) {
+        Box(Modifier.background(MaterialTheme.colorScheme.background)) { content() }
     }
 }
 
@@ -156,8 +220,6 @@ fun HomeScreen(
 private fun SearchCard(vm: AppViewModel, tt: Timetable, onPickStation: (PickerField) -> Unit, onOpenRoute: (Route) -> Unit) {
     val from by vm.from.collectAsStateWithLifecycle()
     val to by vm.to.collectAsStateWithLifecycle()
-    val problem by vm.locationProblem.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val locate = rememberNearestStationAction(vm)
 
     Column(
@@ -167,23 +229,7 @@ private fun SearchCard(vm: AppViewModel, tt: Timetable, onPickStation: (PickerFi
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StationField("From", from?.let { tt.station(it).name }, Modifier.weight(1f)) { onPickStation(PickerField.FROM) }
-            NearestButton(problem != null, locate)
-        }
-        problem?.let {
-            Banner(
-                icon = { InfoIcon() },
-                text = if (it == LocationProblem.DENIED) {
-                    "Location is off for Train Lanka, so we can’t find your nearest station. Pick one from the list instead."
-                } else {
-                    "Couldn’t get your location. Pick a station from the list instead."
-                },
-                bordered = true,
-            ) {
-                TextAction("Dismiss") { vm.setLocationProblem(null) }
-                if (it == LocationProblem.DENIED) {
-                    TextAction("Allow in Settings", underline = true) { openAppSettings(context) }
-                }
-            }
+            NearestButton(locate)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             StationField("To", to?.let { tt.station(it).name }, Modifier.weight(1f)) { onPickStation(PickerField.TO) }
@@ -224,14 +270,12 @@ private fun StationField(label: String, value: String?, modifier: Modifier, onCl
 }
 
 @Composable
-private fun NearestButton(highlighted: Boolean, onClick: () -> Unit) {
+private fun NearestButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
-    val borderWidth = if (highlighted) 2.5.dp else 1.5.dp
-    val borderColor = if (highlighted) AppTheme.colors.bannerBorder else MaterialTheme.colorScheme.outline
     Column(
         Modifier.size(56.dp).clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(borderWidth, borderColor, shape)
+            .border(1.5.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

@@ -2,10 +2,14 @@ package lk.trainlanka.app.ui.picker
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,8 +17,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -22,9 +28,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.automirrored.rounded.KeyboardReturn
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material3.Icon
@@ -34,6 +38,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +50,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -54,10 +62,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import lk.trainlanka.app.domain.MatchKind
 import lk.trainlanka.app.domain.OTHER_PROVINCE
 import lk.trainlanka.app.domain.StationMatch
-import lk.trainlanka.app.domain.groupByProvince
+import lk.trainlanka.app.domain.groupByLetter
 import lk.trainlanka.app.domain.searchStations
 import lk.trainlanka.app.ui.AppViewModel
 import lk.trainlanka.app.ui.PickerField
@@ -67,10 +76,12 @@ import lk.trainlanka.app.ui.theme.AppTheme
 @Composable
 fun PickerScreen(vm: AppViewModel, field: PickerField, onDone: () -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
-    val openProvinces by vm.openProvinces.collectAsStateWithLifecycle()
     val timetable by vm.timetable.collectAsStateWithLifecycle()
     val useNearest = rememberNearestStationAction(vm, onDone = onDone)
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     val tt = timetable ?: return
+    val byLetter = remember(tt) { groupByLetter(tt.stations) }
 
     fun pick(id: Int) {
         if (field == PickerField.FROM) vm.setFrom(id) else vm.setTo(id)
@@ -88,31 +99,71 @@ fun PickerScreen(vm: AppViewModel, field: PickerField, onDone: () -> Unit) {
             onBack = onDone,
             onSubmit = { matches.firstOrNull()?.let { pick(it.station.id) } },
         )
-        LazyColumn(Modifier.fillMaxSize()) {
-            if (field == PickerField.FROM) {
-                item(key = "nearest") { NearestRow(showSubtitle = !searching, onClick = useNearest) }
-            }
-            if (searching) {
-                if (matches.isEmpty()) {
-                    item(key = "empty") { NoResults(query.trim()) }
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(Modifier.fillMaxSize(), state = listState) {
+                if (field == PickerField.FROM) {
+                    item(key = "nearest") { NearestRow(showSubtitle = !searching, onClick = useNearest) }
                 }
-                items(matches.size, key = { "m${matches[it].station.id}" }) { i ->
-                    MatchRow(matches[i], query.trim(), first = i == 0) { pick(matches[i].station.id) }
-                }
-            } else {
-                for ((province, stations) in groupByProvince(tt.stations)) {
-                    val open = province in openProvinces
-                    item(key = "p$province") {
-                        ProvinceHeader(province, open) { vm.setProvinceOpen(province, !open) }
+                if (searching) {
+                    if (matches.isEmpty()) {
+                        item(key = "empty") { NoResults(query.trim()) }
                     }
-                    if (open) {
+                    items(matches.size, key = { "m${matches[it].station.id}" }) { i ->
+                        MatchRow(matches[i], query.trim(), first = i == 0) { pick(matches[i].station.id) }
+                    }
+                } else {
+                    for ((letter, stations) in byLetter) {
+                        stickyHeader(key = "l$letter") { LetterHeader(letter) }
                         items(stations, key = { "s${it.id}" }) { s -> StationRow(s.label) { pick(s.id) } }
                     }
+                }
+            }
+            if (!searching) {
+                val headerIndex = remember(byLetter, field) {
+                    var index = if (field == PickerField.FROM) 1 else 0
+                    byLetter.mapValues { (_, stations) -> index.also { index += 1 + stations.size } }
+                }
+                LetterIndex(headerIndex.keys, Modifier.align(Alignment.CenterEnd)) { letter ->
+                    headerIndex[letter]?.let { scope.launch { listState.scrollToItem(it) } }
                 }
             }
         }
     }
 }
+
+/** Contacts-style A–Z bar: tap or drag to jump; letters without stations are greyed out. */
+@Composable
+private fun LetterIndex(available: Set<Char>, modifier: Modifier, onLetter: (Char) -> Unit) {
+    val currentOnLetter by rememberUpdatedState(onLetter)
+    Column(
+        modifier.fillMaxHeight().width(28.dp).pointerInput(Unit) {
+            fun letterAt(y: Float) = LETTERS[(y / size.height * LETTERS.size).toInt().coerceIn(LETTERS.indices)]
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                down.consume()
+                var last = letterAt(down.position.y).also(currentOnLetter)
+                drag(down.id) { change ->
+                    change.consume()
+                    val letter = letterAt(change.position.y)
+                    if (letter != last) last = letter.also(currentOnLetter)
+                }
+            }
+        },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        for (letter in LETTERS) {
+            Text(
+                letter.toString(),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (letter in available) MaterialTheme.colorScheme.primary else AppTheme.colors.faint,
+            )
+        }
+    }
+}
+
+private val LETTERS = ('A'..'Z').toList()
 
 @Composable
 private fun SearchField(
@@ -178,19 +229,12 @@ private fun NearestRow(showSubtitle: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ProvinceHeader(province: String, open: Boolean, onToggle: () -> Unit) {
-    val base = Modifier.fillMaxWidth().clickable(onClick = onToggle)
-    Row(
-        if (open) base.height(52.dp).background(AppTheme.colors.card).padding(horizontal = 16.dp)
-        else base.height(48.dp).topLine(MaterialTheme.colorScheme.outlineVariant).padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun LetterHeader(letter: Char) {
+    Box(
+        Modifier.fillMaxWidth().height(36.dp).background(AppTheme.colors.card).padding(horizontal = 16.dp),
+        contentAlignment = Alignment.CenterStart,
     ) {
-        Text(province, Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        if (open) {
-            Icon(Icons.Rounded.ExpandMore, contentDescription = "Collapse $province")
-        } else {
-            Icon(Icons.Rounded.ChevronRight, contentDescription = "Expand $province", tint = AppTheme.colors.muted)
-        }
+        Text(letter.toString(), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -198,7 +242,7 @@ private fun ProvinceHeader(province: String, open: Boolean, onToggle: () -> Unit
 private fun StationRow(name: String, onClick: () -> Unit) {
     Box(
         Modifier.fillMaxWidth().height(48.dp).clickable(onClick = onClick)
-            .bottomLine(MaterialTheme.colorScheme.outlineVariant).padding(start = 32.dp, end = 16.dp),
+            .bottomLine(MaterialTheme.colorScheme.outlineVariant).padding(start = 16.dp, end = 40.dp), // end clears the letter index
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(name, fontSize = 15.sp, maxLines = 1)
@@ -266,10 +310,5 @@ private fun matchSubtitle(match: StationMatch): String {
 
 private fun Modifier.bottomLine(color: Color) = drawBehind {
     val y = size.height - 0.5.dp.toPx()
-    drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
-}
-
-private fun Modifier.topLine(color: Color) = drawBehind {
-    val y = 0.5.dp.toPx()
     drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
 }

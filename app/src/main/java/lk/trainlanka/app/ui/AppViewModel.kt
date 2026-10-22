@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import lk.trainlanka.app.TrainLankaApp
 import lk.trainlanka.app.data.CheckResult
 import lk.trainlanka.app.data.CheckStatus
-import lk.trainlanka.app.data.DEFAULT_OPEN_PROVINCES
+import lk.trainlanka.app.data.RemovedRoute
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.data.Settings
 import lk.trainlanka.app.data.ThemeMode
@@ -24,7 +24,7 @@ import lk.trainlanka.app.domain.nowInColombo
 import lk.trainlanka.app.widget.RouteWidget
 import java.time.LocalDateTime
 
-enum class LocationProblem { DENIED, UNAVAILABLE }
+enum class LocationProblem { DENIED, OFF, NO_FIX }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = TrainLankaApp.from(app)
@@ -59,9 +59,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val bannerVersion: StateFlow<String?> = combine(pendingVersion, prefs.dismissedUpdate) { pending, dismissed ->
         pending?.takeIf { it != dismissed }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    val openProvinces: StateFlow<Set<String>> = prefs.openProvinces
-        .stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_OPEN_PROVINCES)
 
     private val _from = MutableStateFlow<Int?>(null)
     val from: StateFlow<Int?> = _from.asStateFlow()
@@ -109,15 +106,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshWidget()
     }
 
+    /** Removes a starred or recent route; pass the result to [restoreRoute] to undo. */
+    suspend fun removeRoute(route: Route): RemovedRoute = prefs.remove(route).also { refreshWidget() }
+
+    fun restoreRoute(removed: RemovedRoute) = viewModelScope.launch {
+        prefs.restore(removed)
+        refreshWidget()
+    }
+
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { prefs.setTheme(mode) }
 
     fun setClock24(on: Boolean) = viewModelScope.launch {
         prefs.setClock24(on)
         refreshWidget()
-    }
-
-    fun setProvinceOpen(province: String, open: Boolean) = viewModelScope.launch {
-        prefs.setProvinceOpen(province, open)
     }
 
     fun dismissUpdate(version: String) = viewModelScope.launch { prefs.dismissUpdate(version) }

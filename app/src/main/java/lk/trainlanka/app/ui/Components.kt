@@ -176,21 +176,39 @@ fun TextAction(text: String, underline: Boolean = false, color: Color = Color.Un
     )
 }
 
+const val SNACKBAR_MILLIS = 6_000L
+
+/** Dark notice overlaid at the bottom of a screen. */
+@Composable
+fun Snackbar(text: String, modifier: Modifier = Modifier, action: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 40.dp)
+            .background(MaterialTheme.colorScheme.inverseSurface, RoundedCornerShape(6.dp))
+            .padding(start = 16.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text,
+            Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.inverseOnSurface,
+            fontSize = 14.sp,
+            lineHeight = 19.sp,
+        )
+        action()
+    }
+}
+
 /** Amber notice with actions, pushed inline (not overlaid). */
 @Composable
 fun Banner(
     icon: @Composable () -> Unit,
     text: String,
     modifier: Modifier = Modifier,
-    bordered: Boolean = false,
     actions: @Composable RowScope.() -> Unit,
 ) {
-    val colors = AppTheme.colors
-    val shape = RoundedCornerShape(if (bordered) 12.dp else 0.dp)
     Column(
-        modifier.fillMaxWidth().clip(shape).background(colors.banner)
-            .then(if (bordered) Modifier.border(1.5.dp, colors.bannerBorder, shape) else Modifier)
-            .padding(start = 12.dp, end = 4.dp, top = 10.dp),
+        modifier.fillMaxWidth().background(AppTheme.colors.banner).padding(start = 12.dp, end = 4.dp, top = 10.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(end = 8.dp)) {
             icon()
@@ -198,11 +216,6 @@ fun Banner(
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, content = actions)
     }
-}
-
-@Composable
-fun InfoIcon() {
-    Icon(Icons.Outlined.Info, contentDescription = null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
 }
 
 /** App icon on its amber tile, used in empty states. */
