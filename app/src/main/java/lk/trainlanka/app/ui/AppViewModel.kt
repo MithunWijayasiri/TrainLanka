@@ -15,18 +15,21 @@ import kotlinx.coroutines.launch
 import lk.trainlanka.app.TrainLankaApp
 import lk.trainlanka.app.data.CheckResult
 import lk.trainlanka.app.data.CheckStatus
-import lk.trainlanka.app.data.DEFAULT_OPEN_PROVINCES
+import lk.trainlanka.app.data.RemovedRoute
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.data.Settings
 import lk.trainlanka.app.data.ThemeMode
 import lk.trainlanka.app.data.Timetable
+import lk.trainlanka.app.domain.hasDirectTrains
 import lk.trainlanka.app.domain.nowInColombo
 import lk.trainlanka.app.widget.RouteWidget
 import java.time.LocalDateTime
 
-enum class LocationProblem { DENIED, UNAVAILABLE }
+enum class LocationProblem { DENIED, OFF, NO_FIX }
 
-class AppViewModel(app: Application) : AndroidViewModel(app) {
+class AppViewModel(
+    app: Application,
+) : AndroidViewModel(app) {
     private val graph = TrainLankaApp.from(app)
     private val prefs = graph.prefs
     private val timetables = graph.timetables
@@ -34,34 +37,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val timetable: StateFlow<Timetable?> = timetables.timetable
 
     /** Wall clock in Colombo, ticking on each minute. */
-    val now: StateFlow<LocalDateTime> = flow {
-        while (true) {
-            val t = nowInColombo()
-            emit(t)
-            delay(60_000L - LocalDateTime.now().second * 1000L)
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), nowInColombo())
+    val now: StateFlow<LocalDateTime> =
+        flow {
+            while (true) {
+                val t = nowInColombo()
+                emit(t)
+                delay(60_000L - LocalDateTime.now().second * 1000L)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), nowInColombo())
 
-    val settings: StateFlow<Settings> = prefs.settings
-        .stateIn(viewModelScope, SharingStarted.Eagerly, Settings(ThemeMode.SYSTEM, clock24 = false))
+    val settings: StateFlow<Settings> =
+        prefs.settings
+            .stateIn(viewModelScope, SharingStarted.Eagerly, Settings(ThemeMode.SYSTEM, clock24 = false))
 
     /** Saved routes whose stations still exist in the current timetable. */
-    val starred: StateFlow<List<Route>> = combine(prefs.starred, timetable) { list, tt -> valid(list, tt) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-    val recent: StateFlow<List<Route>> = combine(prefs.recent, timetable) { list, tt -> valid(list, tt) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val starred: StateFlow<List<Route>> =
+        combine(prefs.starred, timetable) { list, tt -> valid(list, tt) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val recent: StateFlow<List<Route>> =
+        combine(prefs.recent, timetable) { list, tt -> valid(list, tt) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val checkStatus: StateFlow<CheckStatus> = prefs.checkStatus
-        .stateIn(viewModelScope, SharingStarted.Eagerly, CheckStatus(null, false))
+    val checkStatus: StateFlow<CheckStatus> =
+        prefs.checkStatus
+            .stateIn(viewModelScope, SharingStarted.Eagerly, CheckStatus(null, false))
     val pendingVersion: StateFlow<String?> = timetables.pendingVersion
 
     /** Pending version to announce in the home banner, unless dismissed. */
-    val bannerVersion: StateFlow<String?> = combine(pendingVersion, prefs.dismissedUpdate) { pending, dismissed ->
-        pending?.takeIf { it != dismissed }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    val openProvinces: StateFlow<Set<String>> = prefs.openProvinces
-        .stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_OPEN_PROVINCES)
+    val bannerVersion: StateFlow<String?> =
+        combine(pendingVersion, prefs.dismissedUpdate) { pending, dismissed ->
+            pending?.takeIf { it != dismissed }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _from = MutableStateFlow<Int?>(null)
     val from: StateFlow<Int?> = _from.asStateFlow()
@@ -74,13 +80,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _checking = MutableStateFlow(false)
     val checking: StateFlow<Boolean> = _checking.asStateFlow()
 
+    /** Clears To when it is the same station. */
     fun setFrom(id: Int) {
+        if (_to.value == id) _to.value = null
         _from.value = id
         _locationProblem.value = null
     }
 
+    /** Clears From when it is the same station. */
     fun setTo(id: Int) {
+        if (_from.value == id) _from.value = null
         _to.value = id
+    }
+
+    /** Route of the picked stations, once both are set. */
+    fun pickedRoute(): Route? {
+        val f = _from.value ?: return null
+        val t = _to.value ?: return null
+        return Route(f, t)
+    }
+
+    /** [pickedRoute], if it has direct trains. */
+    fun openableRoute(): Route? {
+        val tt = timetable.value ?: return null
+        return pickedRoute()?.takeIf { hasDirectTrains(tt, it) }
     }
 
     fun swapStations() {
@@ -93,32 +116,41 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _locationProblem.value = problem
     }
 
-    fun openRoute(route: Route) = viewModelScope.launch {
-        _from.value = route.fromId
-        _to.value = route.toId
-        prefs.addRecent(route)
-    }
+    fun openRoute(route: Route) =
+        viewModelScope.launch {
+            _from.value = route.fromId
+            _to.value = route.toId
+            prefs.addRecent(route)
+        }
 
-    fun toggleStar(route: Route) = viewModelScope.launch {
-        prefs.toggleStar(route)
-        refreshWidget()
-    }
+    fun toggleStar(route: Route) =
+        viewModelScope.launch {
+            prefs.toggleStar(route)
+            refreshWidget()
+        }
 
-    fun setStarred(list: List<Route>) = viewModelScope.launch {
-        prefs.setStarred(list)
-        refreshWidget()
-    }
+    fun setStarred(list: List<Route>) =
+        viewModelScope.launch {
+            prefs.setStarred(list)
+            refreshWidget()
+        }
+
+    /** Removes a starred or recent route; pass the result to [restoreRoute] to undo. */
+    suspend fun removeRoute(route: Route): RemovedRoute = prefs.remove(route).also { refreshWidget() }
+
+    fun restoreRoute(removed: RemovedRoute) =
+        viewModelScope.launch {
+            prefs.restore(removed)
+            refreshWidget()
+        }
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { prefs.setTheme(mode) }
 
-    fun setClock24(on: Boolean) = viewModelScope.launch {
-        prefs.setClock24(on)
-        refreshWidget()
-    }
-
-    fun setProvinceOpen(province: String, open: Boolean) = viewModelScope.launch {
-        prefs.setProvinceOpen(province, open)
-    }
+    fun setClock24(on: Boolean) =
+        viewModelScope.launch {
+            prefs.setClock24(on)
+            refreshWidget()
+        }
 
     fun dismissUpdate(version: String) = viewModelScope.launch { prefs.dismissUpdate(version) }
 
@@ -133,8 +165,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     applyPending()
                     true
                 }
-                CheckResult.UpToDate -> true
-                CheckResult.Failed -> false
+
+                CheckResult.UpToDate -> {
+                    true
+                }
+
+                CheckResult.Failed -> {
+                    false
+                }
             }
         } finally {
             _checking.value = false
@@ -150,9 +188,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshWidget()
     }
 
-    private suspend fun refreshWidget() =RouteWidget.refresh(getApplication())
+    private suspend fun refreshWidget() = RouteWidget.refresh(getApplication())
 
-    private fun valid(list: List<Route>, tt: Timetable?): List<Route> =
-        if (tt == null) emptyList()
-        else list.filter { it.fromId in tt.stationsById && it.toId in tt.stationsById }
+    private fun valid(
+        list: List<Route>,
+        tt: Timetable?,
+    ): List<Route> =
+        if (tt == null) {
+            emptyList()
+        } else {
+            list.filter { it.fromId in tt.stationsById && it.toId in tt.stationsById }
+        }
 }

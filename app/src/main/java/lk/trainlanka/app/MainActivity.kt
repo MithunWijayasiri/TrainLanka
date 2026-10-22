@@ -35,10 +35,11 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
                     // Library default scrims, kept for 3-button navigation
-                    navigationBarStyle = SystemBarStyle.auto(
-                        Color.argb(0xe6, 0xFF, 0xFF, 0xFF),
-                        Color.argb(0x80, 0x1b, 0x1b, 0x1b),
-                    ) { dark },
+                    navigationBarStyle =
+                        SystemBarStyle.auto(
+                            Color.argb(0xe6, 0xFF, 0xFF, 0xFF),
+                            Color.argb(0x80, 0x1b, 0x1b, 0x1b),
+                        ) { dark },
                 )
             }
             TrainLankaTheme(settings.theme) {

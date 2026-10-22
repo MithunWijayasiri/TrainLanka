@@ -12,7 +12,10 @@ import lk.trainlanka.app.TrainLankaApp
 import java.util.concurrent.TimeUnit
 
 /** Daily background check; a newer timetable is only downloaded, the user applies it from the banner. */
-class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+class UpdateWorker(
+    context: Context,
+    params: WorkerParameters,
+) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         TrainLankaApp.from(applicationContext).timetables.check()
         return Result.success()
@@ -20,10 +23,12 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
     companion object {
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<UpdateWorker>(1, TimeUnit.DAYS)
-                .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
-                .build()
-            WorkManager.getInstance(context)
+            val request =
+                PeriodicWorkRequestBuilder<UpdateWorker>(1, TimeUnit.DAYS)
+                    .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
+                    .build()
+            WorkManager
+                .getInstance(context)
                 .enqueueUniquePeriodicWork("timetable-update", ExistingPeriodicWorkPolicy.KEEP, request)
         }
     }

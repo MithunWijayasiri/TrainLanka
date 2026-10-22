@@ -100,7 +100,7 @@ CI runs these checks on pull requests that change app, Gradle or data files:
 ./gradlew ktlintCheck :app:lintRelease :app:assembleRelease
 ```
 
-ktlint uses a baseline (`app/config/ktlint/baseline.xml`), so it checks only new code. `./gradlew ktlintFormat` fixes formatting.
+`./gradlew ktlintFormat` fixes most ktlint issues.
 
 ## Credits
 

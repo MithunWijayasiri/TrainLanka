@@ -11,13 +11,22 @@ enum class PickerField { FROM, TO }
 object HomeDest
 
 @Serializable
-data class PickerDest(val field: PickerField)
+data class PickerDest(
+    val field: PickerField,
+)
 
 @Serializable
-data class ResultsDest(val from: Int, val to: Int)
+data class ResultsDest(
+    val from: Int,
+    val to: Int,
+)
 
 @Serializable
-data class StopsDest(val trainId: Int, val from: Int, val to: Int)
+data class StopsDest(
+    val trainId: Int,
+    val from: Int,
+    val to: Int,
+)
 
 @Serializable
 object SettingsDest

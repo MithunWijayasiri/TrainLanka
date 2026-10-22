@@ -55,9 +55,10 @@ abstract class CopyTimetable : DefaultTask() {
     }
 }
 
-val copyTimetable = tasks.register<CopyTimetable>("copyTimetable") {
-    source.set(layout.projectDirectory.file("../data/timetable.json"))
-}
+val copyTimetable =
+    tasks.register<CopyTimetable>("copyTimetable") {
+        source.set(layout.projectDirectory.file("../data/timetable.json"))
+    }
 
 androidComponents {
     onVariants { variant ->

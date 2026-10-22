@@ -46,15 +46,26 @@ import lk.trainlanka.app.ui.theme.AppTheme
 private enum class StopKind { OUTSIDE, BOARD, MIDDLE, GET_OFF }
 
 @Composable
-fun StopsScreen(vm: AppViewModel, trainId: Int, route: Route, onBack: () -> Unit) {
+fun StopsScreen(
+    vm: AppViewModel,
+    trainId: Int,
+    route: Route,
+    onBack: () -> Unit,
+) {
     val tt = vm.timetable.collectAsStateWithLifecycle().value ?: return
-    val clock24 = vm.settings.collectAsStateWithLifecycle().value.clock24
+    val clock24 =
+        vm.settings
+            .collectAsStateWithLifecycle()
+            .value.clock24
     val train = tt.trainsById.getValue(trainId)
     val stops = train.stopList
-    val fromIndex = stops.indexOfFirst { it.stationId == route.fromId }
-        .takeIf { it >= 0 } ?: error("Train $trainId does not stop at station ${route.fromId}")
-    val toIndex = (fromIndex + 1 until stops.size).firstOrNull { stops[it].stationId == route.toId }
-        ?: error("Train $trainId does not stop at station ${route.toId} after station ${route.fromId}")
+    val fromIndex =
+        stops
+            .indexOfFirst { it.stationId == route.fromId }
+            .takeIf { it >= 0 } ?: error("Train $trainId does not stop at station ${route.fromId}")
+    val toIndex =
+        (fromIndex + 1 until stops.size).firstOrNull { stops[it].stationId == route.toId }
+            ?: error("Train $trainId does not stop at station ${route.toId} after station ${route.fromId}")
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = maxOf(0, fromIndex - 1))
     val colors = AppTheme.colors
 
@@ -66,7 +77,9 @@ fun StopsScreen(vm: AppViewModel, trainId: Int, route: Route, onBack: () -> Unit
                 subtitle = "${tt.station(stops.first().stationId).name} → ${tt.station(stops.last().stationId).name}",
             )
             Row(
-                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
                     .background(colors.highlight, RoundedCornerShape(12.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
@@ -92,18 +105,20 @@ fun StopsScreen(vm: AppViewModel, trainId: Int, route: Route, onBack: () -> Unit
             }
             LazyColumn(Modifier.weight(1f), state = listState) {
                 itemsIndexed(stops) { i, stop ->
-                    val kind = when {
-                        i < fromIndex || i > toIndex -> StopKind.OUTSIDE
-                        i == fromIndex -> StopKind.BOARD
-                        i == toIndex -> StopKind.GET_OFF
-                        else -> StopKind.MIDDLE
-                    }
-                    val times = when {
-                        i == 0 -> listOf(stop.dep)
-                        i == stops.lastIndex -> listOf(stop.arr)
-                        stop.arr == stop.dep -> listOf(stop.arr)
-                        else -> listOf(stop.arr, stop.dep)
-                    }
+                    val kind =
+                        when {
+                            i < fromIndex || i > toIndex -> StopKind.OUTSIDE
+                            i == fromIndex -> StopKind.BOARD
+                            i == toIndex -> StopKind.GET_OFF
+                            else -> StopKind.MIDDLE
+                        }
+                    val times =
+                        when {
+                            i == 0 -> listOf(stop.dep)
+                            i == stops.lastIndex -> listOf(stop.arr)
+                            stop.arr == stop.dep -> listOf(stop.arr)
+                            else -> listOf(stop.arr, stop.dep)
+                        }
                     StopRow(kind, times, tt.station(stop.stationId).name, clock24)
                 }
             }
@@ -112,17 +127,27 @@ fun StopsScreen(vm: AppViewModel, trainId: Int, route: Route, onBack: () -> Unit
 }
 
 @Composable
-private fun StopRow(kind: StopKind, times: List<Int>, name: String, clock24: Boolean) {
+private fun StopRow(
+    kind: StopKind,
+    times: List<Int>,
+    name: String,
+    clock24: Boolean,
+) {
     val primary = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
     val endpoint = kind == StopKind.BOARD || kind == StopKind.GET_OFF
-    val shape = when (kind) {
-        StopKind.BOARD -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-        StopKind.GET_OFF -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RectangleShape
-    }
-    val box = if (kind == StopKind.OUTSIDE) Modifier.padding(horizontal = 16.dp)
-    else Modifier.padding(horizontal = 8.dp).background(AppTheme.colors.highlight, shape).padding(horizontal = 8.dp)
+    val shape =
+        when (kind) {
+            StopKind.BOARD -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+            StopKind.GET_OFF -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+            else -> RectangleShape
+        }
+    val box =
+        if (kind == StopKind.OUTSIDE) {
+            Modifier.padding(horizontal = 16.dp)
+        } else {
+            Modifier.padding(horizontal = 8.dp).background(AppTheme.colors.highlight, shape).padding(horizontal = 8.dp)
+        }
     val textColor = if (kind == StopKind.OUTSIDE) AppTheme.colors.faint else onSurface
     val textSize = if (kind == StopKind.OUTSIDE) 13.sp else 14.sp
 
@@ -134,7 +159,14 @@ private fun StopRow(kind: StopKind, times: List<Int>, name: String, clock24: Boo
         Rail(kind, Modifier.width(28.dp).fillMaxHeight())
         if (endpoint) {
             Column {
-                Text(name, color = onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    name,
+                    color = onSurface,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     if (kind == StopKind.BOARD) "BOARD HERE" else "GET OFF",
                     color = primary,
@@ -167,7 +199,10 @@ private fun TimeCell(
 }
 
 @Composable
-private fun Rail(kind: StopKind, modifier: Modifier) {
+private fun Rail(
+    kind: StopKind,
+    modifier: Modifier,
+) {
     val railColor = AppTheme.colors.rail
     val primary = MaterialTheme.colorScheme.primary
     val surface = MaterialTheme.colorScheme.surface
@@ -175,13 +210,27 @@ private fun Rail(kind: StopKind, modifier: Modifier) {
         val cx = size.width / 2
         val cy = size.height / 2
         when (kind) {
-            StopKind.OUTSIDE -> drawLine(
-                railColor, Offset(cx, 0f), Offset(cx, size.height), 2.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())),
-            )
-            StopKind.BOARD -> drawLine(primary, Offset(cx, cy), Offset(cx, size.height), 4.dp.toPx())
-            StopKind.MIDDLE -> drawLine(primary, Offset(cx, 0f), Offset(cx, size.height), 4.dp.toPx())
-            StopKind.GET_OFF -> drawLine(primary, Offset(cx, 0f), Offset(cx, cy), 4.dp.toPx())
+            StopKind.OUTSIDE -> {
+                drawLine(
+                    railColor,
+                    Offset(cx, 0f),
+                    Offset(cx, size.height),
+                    2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())),
+                )
+            }
+
+            StopKind.BOARD -> {
+                drawLine(primary, Offset(cx, cy), Offset(cx, size.height), 4.dp.toPx())
+            }
+
+            StopKind.MIDDLE -> {
+                drawLine(primary, Offset(cx, 0f), Offset(cx, size.height), 4.dp.toPx())
+            }
+
+            StopKind.GET_OFF -> {
+                drawLine(primary, Offset(cx, 0f), Offset(cx, cy), 4.dp.toPx())
+            }
         }
         if (kind == StopKind.BOARD || kind == StopKind.GET_OFF) {
             drawCircle(primary, 8.dp.toPx(), Offset(cx, cy))
