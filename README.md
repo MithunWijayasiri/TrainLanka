@@ -94,7 +94,7 @@ Repo layout:
 
 Run the crawler from `crawler/` with `npm run crawl`. Its typecheck is `npm run typecheck`.
 
-Pull requests run the same checks CI does:
+CI runs these checks on pull requests that change app, Gradle or data files:
 
 ```sh
 ./gradlew ktlintCheck :app:lintRelease :app:assembleRelease
