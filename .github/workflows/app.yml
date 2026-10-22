@@ -22,6 +22,7 @@ concurrency:
 
 jobs:
   check:
+    name: ktlint, Android lint, release build
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -36,10 +37,23 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - run: ./gradlew --console=plain ktlintCheck :app:lintRelease :app:assembleRelease
+      - name: ktlint
+        run: ./gradlew --console=plain ktlintCheck
+
+      # Runs even if an earlier check failed.
+      - name: Android lint
+        if: ${{ !cancelled() }}
+        run: ./gradlew --console=plain :app:lintRelease
+
+      - name: Release build
+        id: build
+        if: ${{ !cancelled() }}
+        run: ./gradlew --console=plain :app:assembleRelease
 
       # Debug-signed: sideload only.
-      - uses: actions/upload-artifact@v7
+      - name: Upload APK
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
         with:
           name: train-lanka-apk
           path: app/build/outputs/apk/release/app-release.apk
