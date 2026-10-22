@@ -1,0 +1,25 @@
+name: Contributor / help offer
+description: Offer to help with code, data, translations or testing.
+labels: [help wanted]
+body:
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: How would you like to help?
+      options:
+        - label: "Code: Android app"
+        - label: "Code: crawler"
+        - label: Data checks
+        - label: Translations (Sinhala / Tamil)
+        - label: Design
+        - label: Testing on devices
+    validations:
+      required: true
+  - type: textarea
+    id: about
+    attributes:
+      label: About you / experience
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else

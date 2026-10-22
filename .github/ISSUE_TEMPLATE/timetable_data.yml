@@ -1,0 +1,46 @@
+name: Timetable data issue
+description: A train, time or station in the timetable is wrong or missing.
+labels: [data]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of problem
+      options:
+        - Wrong time
+        - Missing train
+        - Wrong station
+        - Train not running
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: train
+    attributes:
+      label: Train number or name
+      placeholder: "e.g. 1015 Udarata Menike"
+  - type: input
+    id: route
+    attributes:
+      label: From → to stations
+      placeholder: "e.g. Colombo Fort → Kandy"
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Date of travel
+      placeholder: "e.g. 2026-10-22"
+  - type: textarea
+    id: shown
+    attributes:
+      label: What the app shows
+    validations:
+      required: true
+  - type: textarea
+    id: correct
+    attributes:
+      label: What's correct, and the source
+      description: e.g. station notice board, railway website, your own trip.
+    validations:
+      required: true
