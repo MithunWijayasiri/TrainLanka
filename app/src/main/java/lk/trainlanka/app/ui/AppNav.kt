@@ -3,6 +3,8 @@ package lk.trainlanka.app.ui
 import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,35 +31,40 @@ fun AppNav(vm: AppViewModel, launches: Flow<Intent>) {
     LaunchedEffect(nav) { launches.collect { openFromWidget(vm, nav, it) } }
 
     NavHost(nav, startDestination = HomeDest) {
-        composable<HomeDest> {
+        composable<HomeDest> { entry ->
             HomeScreen(
                 vm,
-                onPickStation = { nav.navigate(PickerDest(it)) },
-                onOpenRoute = { nav.navigate(ResultsDest(it.fromId, it.toId)) },
-                onOpenSettings = { nav.navigate(SettingsDest) },
+                onPickStation = { field -> entry.ifResumed { nav.navigate(PickerDest(field)) } },
+                onOpenRoute = { route -> entry.ifResumed { nav.navigate(ResultsDest(route.fromId, route.toId)) } },
+                onOpenSettings = { entry.ifResumed { nav.navigate(SettingsDest) } },
             )
         }
-        composable<PickerDest> {
-            PickerScreen(vm, it.toRoute<PickerDest>().field, onDone = { nav.popBackStack() })
+        composable<PickerDest> { entry ->
+            PickerScreen(vm, entry.toRoute<PickerDest>().field, onDone = { entry.ifResumed { nav.popBackStack() } })
         }
-        composable<ResultsDest> {
-            val dest = it.toRoute<ResultsDest>()
+        composable<ResultsDest> { entry ->
+            val dest = entry.toRoute<ResultsDest>()
             ResultsScreen(
                 vm,
                 Route(dest.from, dest.to),
-                onBack = { nav.popBackStack() },
-                onOpenTrip = { trip -> nav.navigate(trip.stopsDest()) },
-                onChangeStations = { nav.popBackStack(HomeDest, inclusive = false) },
+                onBack = { entry.ifResumed { nav.popBackStack() } },
+                onOpenTrip = { trip -> entry.ifResumed { nav.navigate(trip.stopsDest()) } },
+                onChangeStations = { entry.ifResumed { nav.popBackStack(HomeDest, inclusive = false) } },
             )
         }
-        composable<StopsDest> {
-            val dest = it.toRoute<StopsDest>()
-            StopsScreen(vm, dest.trainId, Route(dest.from, dest.to), onBack = { nav.popBackStack() })
+        composable<StopsDest> { entry ->
+            val dest = entry.toRoute<StopsDest>()
+            StopsScreen(vm, dest.trainId, Route(dest.from, dest.to), onBack = { entry.ifResumed { nav.popBackStack() } })
         }
-        composable<SettingsDest> {
-            SettingsScreen(vm, onBack = { nav.popBackStack() })
+        composable<SettingsDest> { entry ->
+            SettingsScreen(vm, onBack = { entry.ifResumed { nav.popBackStack() } })
         }
     }
+}
+
+/** Runs [action] only while this screen is resumed, so repeat taps during a transition can't pop Home. */
+private fun NavBackStackEntry.ifResumed(action: () -> Unit) {
+    if (lifecycle.currentState == Lifecycle.State.RESUMED) action()
 }
 
 private fun Trip.stopsDest() = StopsDest(
