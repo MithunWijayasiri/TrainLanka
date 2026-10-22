@@ -38,7 +38,8 @@ class TimetableRepository(private val context: Context, private val prefs: Prefs
     suspend fun load(): Timetable = mutex.withLock {
         _timetable.value ?: withContext(Dispatchers.IO) {
             val bundled = Timetable.parse(context.assets.open("timetable.json").bufferedReader().use { it.readText() })
-            val downloaded = currentFile.takeIf { it.exists() }?.let { Timetable.parse(it.readText()) }
+            val downloaded = currentFile.takeIf { it.exists() }
+                ?.let { f -> runCatching { Timetable.parse(f.readText()) }.getOrElse { f.delete(); null } }
             val tt = downloaded?.takeIf { it.version > bundled.version } ?: bundled
             _pendingVersion.value = pendingFile.takeIf { it.exists() }
                 ?.let { f -> runCatching { Timetable.parse(f.readText()).version }.getOrElse { f.delete(); null } }

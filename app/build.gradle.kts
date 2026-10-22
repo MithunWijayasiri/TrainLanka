@@ -57,6 +57,8 @@ val copyTimetable = tasks.register<CopyTimetable>("copyTimetable") {
 androidComponents {
     onVariants { variant ->
         variant.sources.assets?.addGeneratedSourceDirectory(copyTimetable, CopyTimetable::outputDir)
+        // Font license must ship inside the APK (OFL).
+        variant.sources.assets?.addStaticSourceDirectory("licenses")
     }
 }
 

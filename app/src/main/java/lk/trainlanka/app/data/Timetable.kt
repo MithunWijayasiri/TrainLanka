@@ -3,6 +3,7 @@ package lk.trainlanka.app.data
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.DayOfWeek
+import java.time.LocalDate
 
 @Serializable
 data class Station(
@@ -63,6 +64,10 @@ data class Timetable(
         fun parse(text: String): Timetable {
             val tt = json.decodeFromString<Timetable>(text)
             require(tt.trains.isNotEmpty() && tt.stations.isNotEmpty()) { "Empty timetable" }
+            LocalDate.parse(tt.version)
+            tt.trains.forEach { train ->
+                require(train.stopList.all { it.stationId in tt.stationsById }) { "Unknown station in train ${train.id}" }
+            }
             return tt
         }
     }
