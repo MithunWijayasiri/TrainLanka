@@ -5,7 +5,7 @@
 <h1 align="center">Train Lanka</h1>
 
 <p align="center">
-  Fast, offline Sri Lankan train timetables for Android
+  Offline Sri Lankan train timetables for Android
 </p>
 
 <p align="center">
@@ -17,20 +17,20 @@
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android-10%2B-3DDC84?logo=android&logoColor=white" alt="Android 10+"></a>
 </p>
 
-Train Lanka shows Sri Lankan train timetables and nothing else: no booking, no live tracking, no fares. The whole timetable ships inside the app, so it works offline from the very first launch.
+Train Lanka shows Sri Lankan train timetables. It has no booking, live tracking or fares. The whole timetable ships inside the app, so it works offline from the first launch.
 
 ## What it does
 
-- **Search by route.** Pick a from and to station and swap them with one tap. The station picker is grouped by province, and search matches station names and aliases (typing "Pettah" finds Colombo Fort). It forgives typos too, so "Gampha" still finds Gampaha.
+- **Search by route.** Pick a from and to station and swap them with one tap. The station picker is grouped by province, and search matches station names and aliases (typing "Pettah" finds Colombo Fort). It also matches misspellings, so "Gampha" finds Gampaha.
 - **Upcoming trains first.** Results show only trains that have yet to leave, with a hero card for the next one ("in 12 min"). "Show N earlier trains" reveals the ones that have already departed. After the last train of the day, a "No more trains today" divider is followed by tomorrow's trains.
 - **Any day.** Choose Today, Tomorrow, or any date.
 - **Full journey view.** Tap a train to see all its stops, with your segment highlighted.
 - **Starred and recent routes.** Star the routes you use most and reorder them on the home screen. Recent routes appear there too.
-- **Nearest station.** Tap the button to get the closest station from a single GPS fix. Location is read only on that tap, never on start and never in the background.
+- **Nearest station.** Tap the button to get the closest station from a single GPS fix. The app reads location only on that tap, never on start and never in the background.
 - **Home-screen widget.** A 4×2 widget shows the next three departures for your first starred route.
 - **Settings.** Light, Dark or System theme, 12H or 24H time, and a manual check for timetable updates.
 
-Timetables are filtered by weekday only. Poya and public-holiday schedules may differ.
+The app filters timetables by weekday only. Poya and public-holiday schedules may differ.
 
 Requires Android 10 (API 29) or newer. English only for now.
 
@@ -45,7 +45,7 @@ There is no GitHub release yet.
 3. Unzip it and sideload the APK.
 
 > [!NOTE]
-> The APK is signed with a debug key. It is meant for sideloading only, not for the Play Store.
+> A debug key signs the APK. Use it for sideloading only, not for the Play Store.
 
 <details>
 <summary><b>Option 2: build from source</b></summary>
@@ -58,7 +58,7 @@ You need JDK 17 and the Android SDK. Set `sdk.dir` in `local.properties`, then r
 ./gradlew :app:assembleRelease
 ```
 
-The APK is written to `app/build/outputs/apk/release/app-release.apk`.
+Gradle writes the APK to `app/build/outputs/apk/release/app-release.apk`.
 
 </details>
 
@@ -75,11 +75,11 @@ flowchart LR
     F --> G
 ```
 
-A GitHub Action (`.github/workflows/crawl.yml`) runs the crawler every Monday at 02:00 Asia/Colombo, and can also be started manually. The crawler reads public timetable pages and commits `data/timetable.json` only when something changed. The app bundles that file, so it works offline immediately.
+A GitHub Action (`.github/workflows/crawl.yml`) runs the crawler every Monday at 02:00 Asia/Colombo. You can also start it manually. The crawler reads public timetable pages and commits `data/timetable.json` only when something changed. The app bundles that file.
 
-Once a day the app checks in the background for newer timetable data at `https://raw.githubusercontent.com/MithunWijayasiri/TrainLanka/master/data/timetable.json`. If there is one, it offers an Update button. Nothing is applied until you tap it.
+Once a day the app checks in the background for newer timetable data at `https://raw.githubusercontent.com/MithunWijayasiri/TrainLanka/master/data/timetable.json`. If there is one, it offers an Update button. The app applies nothing until you tap it.
 
-Station provinces come from geoBoundaries ADM1 boundaries, which are derived from OpenStreetMap.
+Station provinces come from geoBoundaries ADM1 boundaries, which are based on OpenStreetMap.
 
 ## Development
 
@@ -100,12 +100,12 @@ CI runs these checks on pull requests that change app, Gradle or data files:
 ./gradlew ktlintCheck :app:lintRelease :app:assembleRelease
 ```
 
-ktlint uses a baseline (`app/config/ktlint/baseline.xml`), so only new code is checked. `./gradlew ktlintFormat` fixes formatting automatically.
+ktlint uses a baseline (`app/config/ktlint/baseline.xml`), so it checks only new code. `./gradlew ktlintFormat` fixes formatting.
 
 ## Credits
 
 - Province boundaries: © OpenStreetMap contributors, geoBoundaries.
-- Font: Atkinson Hyperlegible, under the SIL Open Font License. The license is shipped in `app/licenses/`.
+- Font: Atkinson Hyperlegible, under the SIL Open Font License. The license is in `app/licenses/`.
 
 ## Disclaimer
 
