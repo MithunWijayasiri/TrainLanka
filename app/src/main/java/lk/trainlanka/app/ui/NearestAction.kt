@@ -24,12 +24,12 @@ private val LOCATION_PERMISSIONS = arrayOf(Manifest.permission.ACCESS_FINE_LOCAT
 
 /**
  * Returns an action that fills From with the nearest station. Permission is requested only when invoked.
- * Failures land in [AppViewModel.locationProblem]; [onDone] runs after every attempt.
+ * Failures land in [AppViewModel.locationProblem]; [onDone] runs after every attempt, with whether From was filled.
  */
 @Composable
 fun rememberNearestStationAction(
     vm: AppViewModel,
-    onDone: () -> Unit = {},
+    onDone: (found: Boolean) -> Unit = {},
 ): () -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -37,13 +37,19 @@ fun rememberNearestStationAction(
     fun locate() =
         scope.launch {
             val tt = vm.timetable.value ?: return@launch
+            var found = false
             if (!isLocationEnabled(context)) {
                 vm.setLocationProblem(LocationProblem.OFF)
             } else {
                 val station = currentLocation(context)?.let { nearestStation(tt.stations, it) }
-                if (station == null) vm.setLocationProblem(LocationProblem.NO_FIX) else vm.setFrom(station.id)
+                if (station == null) {
+                    vm.setLocationProblem(LocationProblem.NO_FIX)
+                } else {
+                    vm.setFrom(station.id)
+                    found = true
+                }
             }
-            onDone()
+            onDone(found)
         }
 
     val launcher =
@@ -52,7 +58,7 @@ fun rememberNearestStationAction(
                 locate()
             } else {
                 vm.setLocationProblem(LocationProblem.DENIED)
-                onDone()
+                onDone(false)
             }
         }
 

@@ -1,6 +1,7 @@
 package lk.trainlanka.app.ui.picker
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -51,6 +52,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -63,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.domain.MatchKind
 import lk.trainlanka.app.domain.OTHER_PROVINCE
 import lk.trainlanka.app.domain.StationMatch
@@ -73,15 +76,23 @@ import lk.trainlanka.app.ui.PickerField
 import lk.trainlanka.app.ui.rememberNearestStationAction
 import lk.trainlanka.app.ui.theme.AppTheme
 
+/** Once both stations are set and have direct trains, [onOpenRoute] replaces [onDone]. */
 @Composable
 fun PickerScreen(
     vm: AppViewModel,
     field: PickerField,
     onDone: () -> Unit,
+    onOpenRoute: (Route) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val timetable by vm.timetable.collectAsStateWithLifecycle()
-    val useNearest = rememberNearestStationAction(vm, onDone = onDone)
+
+    fun finish(picked: Boolean) {
+        val route = vm.openableRoute()?.takeIf { picked }
+        if (route == null) onDone() else onOpenRoute(route)
+    }
+
+    val useNearest = rememberNearestStationAction(vm, onDone = ::finish)
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val tt = timetable ?: return
@@ -89,7 +100,7 @@ fun PickerScreen(
 
     fun pick(id: Int) {
         if (field == PickerField.FROM) vm.setFrom(id) else vm.setTo(id)
-        onDone()
+        finish(picked = true)
     }
 
     val searching = query.isNotBlank()
@@ -99,15 +110,13 @@ fun PickerScreen(
         SearchField(
             query = query,
             onQueryChange = { query = it },
-            placeholder = if (field == PickerField.FROM) "From: search station" else "To: search station",
+            placeholder = if (field == PickerField.FROM) "Where are you boarding?" else "Where are you going?",
             onBack = onDone,
             onSubmit = { matches.firstOrNull()?.let { pick(it.station.id) } },
         )
+        if (field == PickerField.FROM) NearestPill(useNearest)
         Box(Modifier.fillMaxSize()) {
             LazyColumn(Modifier.fillMaxSize(), state = listState) {
-                if (field == PickerField.FROM) {
-                    item(key = "nearest") { NearestRow(showSubtitle = !searching, onClick = useNearest) }
-                }
                 if (searching) {
                     if (matches.isEmpty()) {
                         item(key = "empty") { NoResults(query.trim()) }
@@ -124,8 +133,8 @@ fun PickerScreen(
             }
             if (!searching) {
                 val headerIndex =
-                    remember(byLetter, field) {
-                        var index = if (field == PickerField.FROM) 1 else 0
+                    remember(byLetter) {
+                        var index = 0
                         byLetter.mapValues { (_, stations) -> index.also { index += 1 + stations.size } }
                     }
                 LetterIndex(headerIndex.keys, Modifier.align(Alignment.CenterEnd)) { letter ->
@@ -216,35 +225,21 @@ private fun SearchField(
 }
 
 @Composable
-private fun NearestRow(
-    showSubtitle: Boolean,
-    onClick: () -> Unit,
-) {
+private fun NearestPill(onClick: () -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
     Row(
         Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .clickable(onClick = onClick)
-            .bottomLine(MaterialTheme.colorScheme.outlineVariant)
-            .padding(horizontal = 16.dp),
+            .padding(start = 16.dp, top = 4.dp, bottom = 12.dp)
+            .height(40.dp)
+            .clip(CircleShape)
+            .border(1.dp, primary, CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Rounded.MyLocation,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("Use nearest station", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            if (showSubtitle) Text("Uses your location once", fontSize = 12.sp, color = AppTheme.colors.muted)
-        }
+        Icon(Icons.Rounded.MyLocation, contentDescription = null, Modifier.size(18.dp), tint = primary)
+        Text("Nearest station", color = primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 

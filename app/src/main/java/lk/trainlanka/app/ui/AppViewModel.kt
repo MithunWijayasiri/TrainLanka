@@ -20,6 +20,7 @@ import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.data.Settings
 import lk.trainlanka.app.data.ThemeMode
 import lk.trainlanka.app.data.Timetable
+import lk.trainlanka.app.domain.hasDirectTrains
 import lk.trainlanka.app.domain.nowInColombo
 import lk.trainlanka.app.widget.RouteWidget
 import java.time.LocalDateTime
@@ -86,6 +87,19 @@ class AppViewModel(
 
     fun setTo(id: Int) {
         _to.value = id
+    }
+
+    /** Route of the picked stations, once both are set and differ. */
+    fun pickedRoute(): Route? {
+        val f = _from.value ?: return null
+        val t = _to.value ?: return null
+        return if (f == t) null else Route(f, t)
+    }
+
+    /** [pickedRoute], if it has direct trains. */
+    fun openableRoute(): Route? {
+        val tt = timetable.value ?: return null
+        return pickedRoute()?.takeIf { hasDirectTrains(tt, it) }
     }
 
     fun swapStations() {

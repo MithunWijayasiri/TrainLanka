@@ -43,7 +43,17 @@ fun AppNav(
             )
         }
         composable<PickerDest> { entry ->
-            PickerScreen(vm, entry.toRoute<PickerDest>().field, onDone = { entry.ifResumed { nav.popBackStack() } })
+            PickerScreen(
+                vm,
+                entry.toRoute<PickerDest>().field,
+                onDone = { entry.ifResumed { nav.popBackStack() } },
+                onOpenRoute = { route ->
+                    entry.ifResumed {
+                        vm.openRoute(route)
+                        nav.navigate(ResultsDest(route.fromId, route.toId)) { popUpTo(HomeDest) }
+                    }
+                },
+            )
         }
         composable<ResultsDest> { entry ->
             val dest = entry.toRoute<ResultsDest>()

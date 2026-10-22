@@ -7,19 +7,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
@@ -34,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,7 +56,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,16 +74,14 @@ import lk.trainlanka.app.data.Timetable
 import lk.trainlanka.app.domain.formatCountdown
 import lk.trainlanka.app.domain.formatTime
 import lk.trainlanka.app.domain.formatVersionDate
+import lk.trainlanka.app.domain.hasDirectTrains
 import lk.trainlanka.app.domain.nextDepartures
 import lk.trainlanka.app.ui.AppViewModel
 import lk.trainlanka.app.ui.Banner
-import lk.trainlanka.app.ui.CircleIconButton
 import lk.trainlanka.app.ui.EmptyState
 import lk.trainlanka.app.ui.LocationProblemDialog
 import lk.trainlanka.app.ui.PickerField
-import lk.trainlanka.app.ui.PrimaryButton
 import lk.trainlanka.app.ui.SNACKBAR_MILLIS
-import lk.trainlanka.app.ui.SectionLabel
 import lk.trainlanka.app.ui.Snackbar
 import lk.trainlanka.app.ui.TextAction
 import lk.trainlanka.app.ui.TimeText
@@ -149,7 +157,7 @@ fun HomeScreen(
                 }
             }
             if (starred.isEmpty() && recent.isEmpty()) {
-                SearchCard(vm, timetable, onPickStation, onOpenRoute)
+                SearchCard(vm, timetable, onPickStation, open)
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     EmptyState(
                         "No saved routes yet",
@@ -159,9 +167,9 @@ fun HomeScreen(
                 return@Column
             }
             LazyColumn(Modifier.weight(1f), state = listState) {
-                item(key = "search") { SearchCard(vm, timetable, onPickStation, onOpenRoute) }
+                item(key = "search") { SearchCard(vm, timetable, onPickStation, open) }
                 if (starredOrder.isNotEmpty()) {
-                    item(key = "starred-label") { SectionLabel("STARRED", trailing = "drag ≡ to reorder") }
+                    item(key = "starred-label") { ListHeader("Starred") }
                     items(starredOrder, key = { it.key() }) { route ->
                         ReorderableItem(reorderState, key = route.key()) { isDragging ->
                             SwipeToRemove(onRemove = { remove(route) }) {
@@ -171,7 +179,7 @@ fun HomeScreen(
                     }
                 }
                 if (recent.isNotEmpty()) {
-                    item(key = "recent-label") { SectionLabel("RECENT") }
+                    item(key = "recent-label") { ListHeader("Recent") }
                     items(recent, key = { "recent-${it.key()}" }) { route ->
                         SwipeToRemove(onRemove = { remove(route) }) {
                             RecentRow(timetable, route) { open(route) }
@@ -227,6 +235,10 @@ private fun SwipeToRemove(
     }
 }
 
+/**
+ * From/To rows with a swap strip, plus a notice when the picked route has no direct trains.
+ * Filling From by location opens the route when To is already set.
+ */
 @Composable
 private fun SearchCard(
     vm: AppViewModel,
@@ -236,82 +248,121 @@ private fun SearchCard(
 ) {
     val from by vm.from.collectAsStateWithLifecycle()
     val to by vm.to.collectAsStateWithLifecycle()
-    val locate = rememberNearestStationAction(vm)
+    val locate = rememberNearestStationAction(vm) { found -> if (found) vm.openableRoute()?.let(onOpenRoute) }
+    val noTrains = remember(tt, from, to) { vm.pickedRoute()?.let { !hasDirectTrains(tt, it) } ?: false }
+    val shape = RoundedCornerShape(16.dp)
 
-    Column(
-        Modifier
-            .padding(horizontal = 12.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(AppTheme.colors.card)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StationField("From", from?.let { tt.station(it).name }, Modifier.weight(1f)) { onPickStation(PickerField.FROM) }
-            NearestButton(locate)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            StationField("To", to?.let { tt.station(it).name }, Modifier.weight(1f)) { onPickStation(PickerField.TO) }
-            CircleIconButton(onClick = vm::swapStations) {
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .clip(shape)
+                .border(1.dp, MaterialTheme.colorScheme.secondaryContainer, shape),
+        ) {
+            Column(Modifier.weight(1f)) {
+                StationRow(
+                    label = "From",
+                    value = from?.let { tt.station(it).name },
+                    placeholder = "Boarding station",
+                    filledDot = false,
+                    onClick = { onPickStation(PickerField.FROM) },
+                ) {
+                    IconButton(onClick = locate) {
+                        Icon(
+                            Icons.Rounded.MyLocation,
+                            contentDescription = "Use my location",
+                            Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                HorizontalDivider(Modifier.padding(start = 36.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                StationRow(
+                    label = "To",
+                    value = to?.let { tt.station(it).name },
+                    placeholder = "Destination station",
+                    filledDot = true,
+                    onClick = { onPickStation(PickerField.TO) },
+                )
+            }
+            VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .width(52.dp)
+                    .background(AppTheme.colors.card)
+                    .clickable(role = Role.Button, onClick = vm::swapStations),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(Icons.Rounded.SwapVert, contentDescription = "Swap stations", tint = MaterialTheme.colorScheme.onSecondaryContainer)
             }
         }
-        val f = from
-        val t = to
-        val route = if (f != null && t != null && f != t) Route(f, t) else null
-        PrimaryButton("Search trains", enabled = route != null, modifier = Modifier.padding(top = 4.dp)) {
-            route?.let {
-                vm.openRoute(it)
-                onOpenRoute(it)
-            }
+        if (noTrains) NoTrainsNotice()
+    }
+}
+
+@Composable
+private fun NoTrainsNotice() {
+    Row(
+        Modifier
+            .padding(top = 10.dp)
+            .fillMaxWidth()
+            .background(AppTheme.colors.banner, RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Outlined.Info, contentDescription = null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("No direct trains on this route", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text("Train Lanka shows direct trains only.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun StationField(
+private fun StationRow(
     label: String,
     value: String?,
-    modifier: Modifier,
+    placeholder: String,
+    filledDot: Boolean,
     onClick: () -> Unit,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(8.dp)
-    Column(
-        modifier
-            .height(56.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.5.dp, MaterialTheme.colorScheme.outline, shape)
+    val primary = MaterialTheme.colorScheme.primary
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(52.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(start = 16.dp, end = if (trailing == null) 16.dp else 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, fontSize = 11.sp, color = AppTheme.colors.muted)
-        if (value != null) {
-            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        } else {
-            Text("Choose station", fontSize = 16.sp, color = AppTheme.colors.muted, maxLines = 1)
-        }
+        Box(
+            Modifier
+                .size(
+                    10.dp,
+                ).then(if (filledDot) Modifier.background(primary, CircleShape) else Modifier.border(2.5.dp, primary, CircleShape)),
+        )
+        Text(label, Modifier.widthIn(min = 36.dp), fontSize = 13.sp, color = AppTheme.colors.muted)
+        Text(
+            value ?: placeholder,
+            Modifier.weight(1f),
+            fontSize = 16.sp,
+            fontWeight = if (value == null) FontWeight.Normal else FontWeight.Bold,
+            color = if (value == null) AppTheme.colors.muted else Color.Unspecified,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        trailing?.invoke()
     }
 }
 
 @Composable
-private fun NearestButton(onClick: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
-    Column(
-        Modifier
-            .size(56.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.5.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(Icons.Rounded.MyLocation, contentDescription = null, Modifier.size(20.dp))
-        Text("Nearest", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+private fun ListHeader(text: String) {
+    Text(text, Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 6.dp), fontSize = 16.sp, fontWeight = FontWeight.Bold)
 }
 
 @Composable
@@ -335,7 +386,7 @@ private fun ReorderableCollectionItemScope.StarredRow(
             .clickable(onClick = onClick),
     ) {
         Row(
-            Modifier.fillMaxWidth().height(63.dp).padding(start = 4.dp, end = 16.dp),
+            Modifier.fillMaxWidth().height(68.dp).padding(start = 4.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -349,7 +400,7 @@ private fun ReorderableCollectionItemScope.StarredRow(
                 Text(tt.routeLabel(route), fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (departures.size > 1) {
                     Text(
-                        "then " + departures.drop(1).joinToString(", ") { formatTime(it.dep, settings.clock24) },
+                        "Then " + departures.drop(1).joinToString(" · ") { formatTime(it.dep, settings.clock24) },
                         fontSize = 13.sp,
                         color = AppTheme.colors.muted,
                         maxLines = 1,
@@ -360,9 +411,19 @@ private fun ReorderableCollectionItemScope.StarredRow(
             if (next == null) {
                 Text("No trains", fontSize = 14.sp, color = AppTheme.colors.muted)
             } else {
-                Column(horizontalAlignment = Alignment.End) {
-                    TimeText(formatTime(next.dep, settings.clock24), fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
-                    Text(formatCountdown(now, next.dep), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TimeText(formatTime(next.dep, settings.clock24), fontSize = 22.sp, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        formatCountdown(now, next.dep),
+                        Modifier
+                            .background(
+                                AppTheme.colors.highlight,
+                                RoundedCornerShape(10.dp),
+                            ).padding(horizontal = 8.dp, vertical = 2.dp),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
         }

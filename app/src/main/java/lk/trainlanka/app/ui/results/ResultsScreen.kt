@@ -252,7 +252,7 @@ fun ResultsScreen(
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 EmptyState(
                     "No direct trains on this route",
-                    "Train Lanka shows direct trains only. Try searching to a junction (e.g. Colombo Fort or Polgahawela) and change there.",
+                    "Train Lanka shows direct trains only.",
                 )
             }
             PrimaryButton(
