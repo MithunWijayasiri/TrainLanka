@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -35,6 +36,10 @@ android {
         compose = true
         buildConfig = true
     }
+}
+
+ktlint {
+    version = libs.versions.ktlint.get()
 }
 
 abstract class CopyTimetable : DefaultTask() {
