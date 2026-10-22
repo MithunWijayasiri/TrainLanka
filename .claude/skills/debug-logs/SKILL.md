@@ -16,7 +16,7 @@ Goal: removal = deleting marked lines only, no judgment, nothing missed, no code
 - **One line per call.** `debugLog(...)` from `app/src/main/java/lk/trainlanka/app/DebugLog.kt` (tag `TrainLanka`), whole call on one line (long is fine). Never `android.util.Log` elsewhere.
 - **Never load-bearing.** A `debugLog` line is never the only statement of a branch/lambda/body, never part of an expression, never in an `if`/`else` without braces. Deleting the line must leave valid code with the same behavior.
 - **Mark other debug code.** Anything else that exists only for logging (effect, listener, variable, import) → wrap in `// debug-log start` … `// debug-log end` lines, or end a single line with `// debug-log`.
-- **Message:** area prefix + what happened + key values (ids, versions, lifecycle state), e.g. `"Widget update: route $route, ${trips.size} trips"`. Catch blocks: pass the exception as `error`.
+- **Message:** area prefix + what happened + key values (ids, versions, lifecycle state), e.g. `"Widget update: route $route, ${trips.size} trips"`. Catch blocks: pass the exception as `error`. Never log the user's location (lat/lng) or other personal data.
 - **Not in composable bodies** — they re-run on every recomposition and flood logcat. Log in callbacks, effects or the ViewModel.
 
 ## Add

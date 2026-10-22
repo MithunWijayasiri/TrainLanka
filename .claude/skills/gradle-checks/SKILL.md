@@ -27,5 +27,5 @@ Same checks as CI (`.github/workflows/app.yml`). Run as 3 separate commands so e
 ## Debug code
 
 - Working tree may hold uncommitted `debugLog` lines (`debug-logs` skill); checks run on them as-is, CI only on committed code.
-- Failures only in debug code (e.g. lint `RestrictedApi` on `nav.currentBackStack` in `AppNav.kt` debug block, ktlint in `DebugLog.kt`) → not real.
+- Local failures only in uncommitted debug code (e.g. lint `RestrictedApi` on `nav.currentBackStack` in `AppNav.kt` debug block, ktlint in `DebugLog.kt`) → not real. Committed debug code fails CI like any other code.
 - CI-equivalent run → debug-free `git worktree` of the branch (copy `local.properties` into it).

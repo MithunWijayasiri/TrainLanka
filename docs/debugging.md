@@ -28,7 +28,7 @@ Removal must be deleting marked lines only — nothing to rewrite or restore.
 - **One line per call.** `debugLog(message, error = null)` from `app/src/main/java/lk/trainlanka/app/DebugLog.kt`, whole call on one line. Never `android.util.Log` elsewhere.
 - **Never load-bearing.** Not the only statement of a branch/lambda/body, not inside an expression, not in a brace-less `if`/`else`. Deleting the line must leave valid, same-behavior code.
 - **Mark other debug code** (effect, listener, variable, import): wrap in `// debug-log start` … `// debug-log end`, or end the line with `// debug-log`.
-- Message: area prefix + what happened + key values, e.g. `"Widget update: route $route, ${trips.size} trips"`. Pass caught exceptions as `error`.
+- Message: area prefix + what happened + key values, e.g. `"Widget update: route $route, ${trips.size} trips"`. Pass caught exceptions as `error`. Never log the user's location (lat/lng) or other personal data.
 - Not in composable bodies (re-run every recomposition) → callbacks, effects, ViewModel.
 
 ### Add
@@ -68,7 +68,7 @@ Menu paths move between ColorOS versions → search Settings for "Build number" 
 Path: `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`. Git Bash:
 
 ```bash
-export PATH="$PATH:$LOCALAPPDATA/Android/Sdk/platform-tools"
+export PATH="$PATH:$(cygpath -u "$LOCALAPPDATA")/Android/Sdk/platform-tools"
 ```
 
 ### USB debugging
@@ -162,3 +162,5 @@ After that it reads logs on the phone alone. Recent Android may still show a one
 - Screen recording with Show taps on.
 - `trainlanka.txt` (app debug logs, while present); for crashes also `crash.txt` or `logcat.txt`. No PC → bug report taken right after.
 - Steps, screen you were on, app version and timetable version (both on the Settings screen).
+
+`logcat.txt`, `crash.txt` and bug reports cover the whole phone (other apps, accounts, networks) → never attach them to a public issue; share privately or trim to `lk.trainlanka.app` lines first.
