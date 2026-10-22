@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
@@ -81,6 +80,7 @@ import lk.trainlanka.app.ui.Banner
 import lk.trainlanka.app.ui.EmptyState
 import lk.trainlanka.app.ui.LocationProblemDialog
 import lk.trainlanka.app.ui.PickerField
+import lk.trainlanka.app.ui.PrimaryButton
 import lk.trainlanka.app.ui.SNACKBAR_MILLIS
 import lk.trainlanka.app.ui.Snackbar
 import lk.trainlanka.app.ui.TextAction
@@ -236,7 +236,7 @@ private fun SwipeToRemove(
 }
 
 /**
- * From/To rows with a swap strip, plus a notice when the picked route has no direct trains.
+ * From/To rows with a swap strip, plus a Show trains button that is disabled until the route has direct trains.
  * Filling From by location opens the route when To is already set.
  */
 @Composable
@@ -249,7 +249,8 @@ private fun SearchCard(
     val from by vm.from.collectAsStateWithLifecycle()
     val to by vm.to.collectAsStateWithLifecycle()
     val locate = rememberNearestStationAction(vm) { found -> if (found) vm.openableRoute()?.let(onOpenRoute) }
-    val noTrains = remember(tt, from, to) { vm.pickedRoute()?.let { !hasDirectTrains(tt, it) } ?: false }
+    val picked = remember(from, to) { vm.pickedRoute() }
+    val openable = remember(tt, picked) { picked?.takeIf { hasDirectTrains(tt, it) } }
     val shape = RoundedCornerShape(16.dp)
 
     Column(Modifier.padding(horizontal = 16.dp)) {
@@ -298,26 +299,11 @@ private fun SearchCard(
                 Icon(Icons.Rounded.SwapVert, contentDescription = "Swap stations", tint = MaterialTheme.colorScheme.onSecondaryContainer)
             }
         }
-        if (noTrains) NoTrainsNotice()
-    }
-}
-
-@Composable
-private fun NoTrainsNotice() {
-    Row(
-        Modifier
-            .padding(top = 10.dp)
-            .fillMaxWidth()
-            .background(AppTheme.colors.banner, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(Icons.Outlined.Info, contentDescription = null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("No direct trains on this route", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            Text("Train Lanka shows direct trains only.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        PrimaryButton(
+            if (picked != null && openable == null) "No direct trains on this route" else "Show trains",
+            enabled = openable != null,
+            modifier = Modifier.padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Polite },
+        ) { onOpenRoute(checkNotNull(openable)) }
     }
 }
 

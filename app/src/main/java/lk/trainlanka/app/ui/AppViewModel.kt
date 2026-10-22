@@ -80,20 +80,24 @@ class AppViewModel(
     private val _checking = MutableStateFlow(false)
     val checking: StateFlow<Boolean> = _checking.asStateFlow()
 
+    /** Clears To when it is the same station. */
     fun setFrom(id: Int) {
+        if (_to.value == id) _to.value = null
         _from.value = id
         _locationProblem.value = null
     }
 
+    /** Clears From when it is the same station. */
     fun setTo(id: Int) {
+        if (_from.value == id) _from.value = null
         _to.value = id
     }
 
-    /** Route of the picked stations, once both are set and differ. */
+    /** Route of the picked stations, once both are set. */
     fun pickedRoute(): Route? {
         val f = _from.value ?: return null
         val t = _to.value ?: return null
-        return if (f == t) null else Route(f, t)
+        return Route(f, t)
     }
 
     /** [pickedRoute], if it has direct trains. */
