@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -286,24 +285,6 @@ fun EmptyState(
             textAlign = TextAlign.Center,
         )
     }
-}
-
-@Composable
-fun CircleIconButton(
-    onClick: () -> Unit,
-    size: Int = 56,
-    content: @Composable () -> Unit,
-) {
-    Box(
-        Modifier
-            .size(
-                size.dp,
-            ).clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .clickable(role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
-        content = { content() },
-    )
 }
 
 @Composable

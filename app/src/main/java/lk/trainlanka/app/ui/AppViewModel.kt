@@ -48,7 +48,11 @@ class AppViewModel(
 
     val settings: StateFlow<Settings> =
         prefs.settings
-            .stateIn(viewModelScope, SharingStarted.Eagerly, Settings(ThemeMode.SYSTEM, clock24 = false))
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                Settings(ThemeMode.SYSTEM, clock24 = false, hideFiltered = false, unselectedTypes = emptySet()),
+            )
 
     /** Saved routes whose stations still exist in the current timetable. */
     val starred: StateFlow<List<Route>> =
@@ -151,6 +155,10 @@ class AppViewModel(
             prefs.setClock24(on)
             refreshWidget()
         }
+
+    fun setHideFiltered(on: Boolean) = viewModelScope.launch { prefs.setHideFiltered(on) }
+
+    fun toggleTrainType(type: String) = viewModelScope.launch { prefs.toggleTrainType(type) }
 
     fun dismissUpdate(version: String) = viewModelScope.launch { prefs.dismissUpdate(version) }
 

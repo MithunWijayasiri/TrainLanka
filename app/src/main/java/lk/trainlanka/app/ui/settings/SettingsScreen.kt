@@ -97,6 +97,11 @@ fun SettingsScreen(
                 RadioRow("24-hour (18:55)", settings.clock24) { vm.setClock24(true) }
                 Divider()
 
+                SectionLabel("UNSELECTED TRAIN TYPES")
+                RadioRow("Compact (greyed out)", !settings.hideFiltered) { vm.setHideFiltered(false) }
+                RadioRow("Hide completely", settings.hideFiltered) { vm.setHideFiltered(true) }
+                Divider()
+
                 SectionLabel("TIMETABLE DATA")
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Version ${version.replace('-', '.')}", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)

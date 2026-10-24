@@ -28,6 +28,7 @@ val Atkinson =
 @Immutable
 data class AppColors(
     val card: Color,
+    val compactRow: Color,
     val highlight: Color,
     val muted: Color,
     val faint: Color,
@@ -48,6 +49,7 @@ data class AppColors(
 private val LightApp =
     AppColors(
         card = Color(0xFFEEF5F3),
+        compactRow = Color(0xFFF6F6F6),
         highlight = Color(0xFFE4F2EF),
         muted = Color(0xFF666666),
         faint = Color(0xFF9A9A9A),
@@ -74,6 +76,7 @@ private val LightApp =
 private val DarkApp =
     AppColors(
         card = Color(0xFF1A2322),
+        compactRow = Color(0xFF161D1C),
         highlight = Color(0xFF1F2D2C),
         muted = Color(0xFFA9B4B2),
         faint = Color(0xFF6F7876),
