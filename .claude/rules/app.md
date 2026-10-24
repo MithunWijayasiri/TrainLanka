@@ -18,4 +18,4 @@ Single-activity Compose, no DI framework. `TrainLankaApp` holds singletons (`pre
 - `ui/AppNav` + `ui/Routes.kt`: type-safe Navigation Compose (`@Serializable` destinations). Nav actions wrapped in `ifResumed` so repeated taps mid-transition can't pop Home. Widget intents (`EXTRA_FROM/TO/TRAIN`) arrive via `MainActivity` channel → open Results (and Stops).
 - `widget/RouteWidget`: Glance 4×2 widget, next 3 departures of first starred route. Self-schedules refresh with `AlarmManager` (`WidgetRefreshReceiver`). Any change to starred routes, clock format or timetable → call `RouteWidget.refresh`.
 - `location/`: single on-demand location fix only on Nearest tap; never on start or in background.
-- `ui/theme/Theme.kt`: Material 3, Light/Dark/System, Atkinson Hyperlegible font (OFL; `app/licenses/` shipped as assets).
+- `ui/theme/Theme.kt`: Material 3, Light/Dark/System, Atkinson Hyperlegible font, Sora Bold for Home wordmark/headings (both OFL; `app/licenses/` shipped as assets).

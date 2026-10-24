@@ -24,10 +24,14 @@ val Atkinson =
         Font(R.font.atkinson_bold, FontWeight.Bold),
     )
 
+/** Brand display font: wordmark and Home headings only. */
+val Sora = FontFamily(Font(R.font.sora_bold, FontWeight.Bold))
+
 /** Design tokens outside the M3 scheme. */
 @Immutable
 data class AppColors(
     val card: Color,
+    val compactRow: Color,
     val highlight: Color,
     val muted: Color,
     val faint: Color,
@@ -39,6 +43,12 @@ data class AppColors(
     val hero: Color,
     val onHero: Color,
     val onHeroMuted: Color,
+    /** Home top band gradient stops, top to bottom; ends on the page background. */
+    val band: List<Pair<Float, Color>>,
+    val onBand: Color,
+    val raised: Color,
+    val ticket: Color,
+    val countdown: Pair<Color, Color>,
     val disabled: Color,
     val onDisabled: Color,
     val badges: Map<String, Pair<Color, Color>>,
@@ -48,6 +58,7 @@ data class AppColors(
 private val LightApp =
     AppColors(
         card = Color(0xFFEEF5F3),
+        compactRow = Color(0xFFF6F6F6),
         highlight = Color(0xFFE4F2EF),
         muted = Color(0xFF666666),
         faint = Color(0xFF9A9A9A),
@@ -59,6 +70,11 @@ private val LightApp =
         hero = Color(0xFF0F5C57),
         onHero = Color.White,
         onHeroMuted = Color(0xFFDDDDDD),
+        band = listOf(0f to Color(0xFF0F5C57), 0.62f to Color(0xFF13716A), 1f to Color.White),
+        onBand = Color(0xFFF4ECD8),
+        raised = Color.White,
+        ticket = Color(0xFFF3F5F4),
+        countdown = Color(0xFFFDEFD2) to Color(0xFF7A5200),
         disabled = Color(0xFFD6D6D6),
         onDisabled = Color(0xFF888888),
         badges =
@@ -74,6 +90,7 @@ private val LightApp =
 private val DarkApp =
     AppColors(
         card = Color(0xFF1A2322),
+        compactRow = Color(0xFF161D1C),
         highlight = Color(0xFF1F2D2C),
         muted = Color(0xFFA9B4B2),
         faint = Color(0xFF6F7876),
@@ -85,6 +102,11 @@ private val DarkApp =
         hero = Color(0xFF0F5C57),
         onHero = Color.White,
         onHeroMuted = Color(0xFFCFE8E4),
+        band = listOf(0f to Color(0xFF16433F), 1f to Color(0xFF111716)),
+        onBand = Color(0xFFF4ECD8),
+        raised = Color(0xFF1A2322),
+        ticket = Color(0xFF1A2322),
+        countdown = Color(0x24F6B73C) to Color(0xFFF6B73C),
         disabled = Color(0xFF2C3534),
         onDisabled = Color(0xFF6F7876),
         badges =

@@ -58,7 +58,7 @@ You need JDK 17 and the Android SDK. Set `sdk.dir` in `local.properties`, then r
 ./gradlew :app:assembleRelease
 ```
 
-Gradle writes the APK to `app/build/outputs/apk/release/app-release.apk`.
+Gradle writes the APK to `app/build/outputs/apk/release/TrainLanka-<version>-release.apk`.
 
 </details>
 
@@ -105,7 +105,7 @@ CI runs these checks on pull requests that change app, Gradle or data files:
 ## Credits
 
 - Province boundaries: © OpenStreetMap contributors, geoBoundaries.
-- Font: Atkinson Hyperlegible, under the SIL Open Font License. The license is in `app/licenses/`.
+- Fonts: Atkinson Hyperlegible and Sora, under the SIL Open Font License. The licenses are in `app/licenses/`.
 
 ## Disclaimer
 

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -37,6 +38,8 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 data class Settings(
     val theme: ThemeMode,
     val clock24: Boolean,
+    val hideFiltered: Boolean,
+    val unselectedTypes: Set<String>,
 )
 
 /** Result of the last update check; null time = never checked. */
@@ -59,6 +62,8 @@ class Prefs(
             Settings(
                 theme = it[THEME]?.let(ThemeMode::valueOf) ?: ThemeMode.SYSTEM,
                 clock24 = it[CLOCK_24] ?: false,
+                hideFiltered = it[HIDE_FILTERED] ?: false,
+                unselectedTypes = it[UNSELECTED_TYPES] ?: emptySet(),
             )
         }
     val checkStatus: Flow<CheckStatus> = store.data.map { CheckStatus(it[CHECK_AT], it[CHECK_FAILED] ?: false) }
@@ -120,6 +125,14 @@ class Prefs(
 
     suspend fun setClock24(on: Boolean) = store.edit { it[CLOCK_24] = on }
 
+    suspend fun setHideFiltered(on: Boolean) = store.edit { it[HIDE_FILTERED] = on }
+
+    suspend fun toggleTrainType(type: String) =
+        store.edit {
+            val unselected = it[UNSELECTED_TYPES] ?: emptySet()
+            it[UNSELECTED_TYPES] = if (type in unselected) unselected - type else unselected + type
+        }
+
     suspend fun setCheck(
         at: Long,
         failed: Boolean,
@@ -136,6 +149,8 @@ class Prefs(
         val RECENT = stringPreferencesKey("recent")
         val THEME = stringPreferencesKey("theme")
         val CLOCK_24 = booleanPreferencesKey("clock24")
+        val HIDE_FILTERED = booleanPreferencesKey("hide_filtered")
+        val UNSELECTED_TYPES = stringSetPreferencesKey("unselected_types")
         val CHECK_AT = longPreferencesKey("check_at")
         val CHECK_FAILED = booleanPreferencesKey("check_failed")
         val DISMISSED_UPDATE = stringPreferencesKey("dismissed_update")

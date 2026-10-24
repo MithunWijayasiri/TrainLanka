@@ -6,24 +6,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
@@ -38,7 +39,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,7 +51,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -71,10 +81,12 @@ import lk.trainlanka.app.domain.hasDirectTrains
 import lk.trainlanka.app.domain.tripsOn
 import lk.trainlanka.app.domain.upcoming
 import lk.trainlanka.app.ui.AppViewModel
-import lk.trainlanka.app.ui.CircleIconButton
 import lk.trainlanka.app.ui.EmptyState
 import lk.trainlanka.app.ui.HolidayNote
 import lk.trainlanka.app.ui.PrimaryButton
+import lk.trainlanka.app.ui.Segment
+import lk.trainlanka.app.ui.SegmentedBar
+import lk.trainlanka.app.ui.SegmentedBarHeight
 import lk.trainlanka.app.ui.TimeText
 import lk.trainlanka.app.ui.TopBar
 import lk.trainlanka.app.ui.TypeBadge
@@ -83,6 +95,17 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+
+private val TrainTypes =
+    listOf(
+        "Intercity Express" to "Inter Ex",
+        "Express" to "Express",
+        "Semi Express" to "Sem. Ex",
+        "Slow" to "Slow",
+    )
+
+private val DateBarMargin = 16.dp
+private val DateBarShadow = 3.dp
 
 private sealed interface DayMode {
     data object Today : DayMode
@@ -208,10 +231,7 @@ fun ResultsScreen(
 ) {
     val tt = vm.timetable.collectAsStateWithLifecycle().value ?: return
     val now by vm.now.collectAsStateWithLifecycle()
-    val clock24 =
-        vm.settings
-            .collectAsStateWithLifecycle()
-            .value.clock24
+    val settings by vm.settings.collectAsStateWithLifecycle()
     val starred by vm.starred.collectAsStateWithLifecycle()
 
     var current by rememberSaveable(stateSaver = RouteSaver) { mutableStateOf(route) }
@@ -263,24 +283,30 @@ fun ResultsScreen(
             )
         } else {
             val day = dayOf(mode, now.toLocalDate())
-            ResultsList(
-                tt,
-                data,
-                now,
-                clock24,
-                day,
-                mode == DayMode.Today,
-                showEarlier,
-                onToggleEarlier = { showEarlier = !showEarlier },
-                onOpenTrip = onOpenTrip,
-                modifier = Modifier.weight(1f),
-            )
-            DateBar(
-                mode,
-                onSelect = { mode = it },
-                onPick = { showPicker = true },
-                onSwap = ::swap,
-            )
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                ResultsList(
+                    tt,
+                    data,
+                    now,
+                    settings.clock24,
+                    settings.unselectedTypes,
+                    settings.hideFiltered,
+                    day,
+                    mode == DayMode.Today,
+                    showEarlier,
+                    onToggleEarlier = { showEarlier = !showEarlier },
+                    onToggleType = vm::toggleTrainType,
+                    onOpenTrip = onOpenTrip,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                DateBar(
+                    mode,
+                    onSelect = { mode = it },
+                    onPick = { showPicker = true },
+                    onSwap = ::swap,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
     }
 
@@ -303,10 +329,13 @@ private fun ResultsList(
     data: ResultsData,
     now: LocalDateTime,
     clock24: Boolean,
+    unselectedTypes: Set<String>,
+    hideFiltered: Boolean,
     day: LocalDate,
     isToday: Boolean,
     showEarlier: Boolean,
     onToggleEarlier: () -> Unit,
+    onToggleType: (String) -> Unit,
     onOpenTrip: (Trip) -> Unit,
     modifier: Modifier,
 ) {
@@ -323,7 +352,24 @@ private fun ResultsList(
         trip: Trip,
     ) = "$prefix-${trip.train.id}-${trip.startDate}"
 
-    LazyColumn(modifier) {
+    fun visible(trips: List<Trip>) = if (hideFiltered) trips.filter { it.train.type !in unselectedTypes } else trips
+
+    @Composable
+    fun UpcomingRow(trip: Trip) {
+        if (trip.train.type in unselectedTypes) {
+            CompactRow(trip, destination(trip), clock24) { onOpenTrip(trip) }
+        } else {
+            TrainRow(trip, destination(trip), clock24) { onOpenTrip(trip) }
+        }
+    }
+
+    LazyColumn(
+        modifier,
+        contentPadding =
+            PaddingValues(
+                bottom = SegmentedBarHeight + DateBarMargin + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+            ),
+    ) {
         if (showEarlier) {
             items(data.departed, key = { key("d", it) }) { DepartedRow(it, clock24) }
         }
@@ -350,6 +396,16 @@ private fun ResultsList(
                 )
             }
         }
+        item(key = "type-filter") {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                for ((type, label) in TrainTypes) {
+                    TypePill(type, label, type !in unselectedTypes, { onToggleType(type) }, Modifier.weight(1f))
+                }
+            }
+        }
         if (data.departed.isNotEmpty()) {
             item(key = "earlier-link") {
                 val n = data.departed.size
@@ -370,11 +426,11 @@ private fun ResultsList(
                 }
             }
         }
-        items(data.before, key = { key("b", it) }) { TrainRow(it, destination(it), clock24) { onOpenTrip(it) } }
+        items(visible(data.before), key = { key("b", it) }) { UpcomingRow(it) }
         if (data.caption != null) {
             item(key = "rollover") { Rollover(data.caption) }
         }
-        items(data.after, key = { key("a", it) }) { TrainRow(it, destination(it), clock24) { onOpenTrip(it) } }
+        items(visible(data.after), key = { key("a", it) }) { UpcomingRow(it) }
         item(key = "footer") { HolidayNote(Modifier.padding(top = 8.dp)) }
     }
 }
@@ -466,6 +522,95 @@ private fun TrainRow(
 }
 
 @Composable
+private fun TypePill(
+    type: String,
+    label: String,
+    selected: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier,
+) {
+    val colors = AppTheme.colors
+    val (bg, fg) = colors.badges.getValue(type)
+    val faint = colors.faint
+    val look =
+        if (selected) {
+            Modifier.background(bg, CircleShape).border(1.dp, fg, CircleShape)
+        } else {
+            Modifier.drawBehind {
+                val stroke = 1.dp.toPx()
+                drawRoundRect(
+                    color = faint,
+                    topLeft = Offset(stroke / 2, stroke / 2),
+                    size = Size(size.width - stroke, size.height - stroke),
+                    cornerRadius = CornerRadius(size.height / 2),
+                    style = Stroke(stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))),
+                )
+            }
+        }
+    Box(
+        modifier
+            .heightIn(min = 48.dp)
+            .toggleable(selected, role = Role.Checkbox, onValueChange = { onToggle() })
+            .semantics { contentDescription = type },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+                .then(look)
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                label,
+                Modifier.clearAndSetSemantics {},
+                color = if (selected) fg else colors.muted,
+                fontSize = 13.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactRow(
+    trip: Trip,
+    destination: String,
+    clock24: Boolean,
+    onClick: () -> Unit,
+) {
+    val faint = AppTheme.colors.faint
+    Column(Modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(AppTheme.colors.compactRow)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                TimeText(formatTime(trip.dep, clock24), 18.sp, Modifier.alignByBaseline(), color = faint)
+                Text(
+                    "→ ${formatTime(trip.arr, clock24)} · ${trip.train.type} #${trip.train.no}",
+                    Modifier.weight(1f).alignByBaseline(),
+                    color = faint,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(formatDuration(trip.minutes), Modifier.alignByBaseline(), color = faint, fontSize = 13.sp)
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+@Composable
 private fun DepartedRow(
     trip: Trip,
     clock24: Boolean,
@@ -519,64 +664,31 @@ private fun DateBar(
     onSelect: (DayMode) -> Unit,
     onPick: () -> Unit,
     onSwap: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(24.dp)
-    val outline = MaterialTheme.colorScheme.outline
     val picked = (mode as? DayMode.Picked)?.date
     Row(
-        Modifier
-            .fillMaxWidth()
-            .background(AppTheme.colors.card)
+        modifier
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(start = 12.dp, end = 12.dp, bottom = DateBarMargin),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        SegmentedBar(Modifier.weight(1f).shadow(DateBarShadow, RoundedCornerShape(26.dp))) {
+            Segment("Today", mode == DayMode.Today, role = Role.Tab) { onSelect(DayMode.Today) }
+            Segment("Tomorrow", mode == DayMode.Tomorrow, role = Role.Tab) { onSelect(DayMode.Tomorrow) }
+            Segment(picked?.let(::formatDay) ?: "Date", picked != null, dropdown = picked == null, role = Role.Tab, onClick = onPick)
+        }
+        Box(
             Modifier
-                .weight(1f)
-                .height(48.dp)
-                .clip(shape)
-                .border(1.dp, outline, shape),
+                .size(SegmentedBarHeight)
+                .shadow(DateBarShadow, CircleShape)
+                .background(AppTheme.colors.hero, CircleShape)
+                .clickable(role = Role.Button, onClick = onSwap),
+            contentAlignment = Alignment.Center,
         ) {
-            Segment("Today", mode == DayMode.Today) { onSelect(DayMode.Today) }
-            VerticalDivider(color = outline)
-            Segment("Tomorrow", mode == DayMode.Tomorrow) { onSelect(DayMode.Tomorrow) }
-            VerticalDivider(color = outline)
-            Segment(picked?.let(::formatDay) ?: "Date", picked != null, dropdown = picked == null, onClick = onPick)
+            Icon(Icons.Rounded.SwapVert, contentDescription = "Swap stations", tint = AppTheme.colors.onHero)
         }
-        CircleIconButton(onSwap, size = 48) { Icon(Icons.Rounded.SwapVert, contentDescription = "Swap stations") }
-    }
-}
-
-@Composable
-private fun RowScope.Segment(
-    label: String,
-    selected: Boolean,
-    dropdown: Boolean = false,
-    onClick: () -> Unit,
-) {
-    Row(
-        Modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (selected) {
-            Icon(Icons.Rounded.Check, contentDescription = null, Modifier.size(16.dp))
-            Spacer(Modifier.width(4.dp))
-        }
-        Text(
-            label,
-            fontSize = 14.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            maxLines = 1,
-        )
-        if (dropdown) Icon(Icons.Rounded.ArrowDropDown, contentDescription = null, Modifier.size(18.dp))
     }
 }
 

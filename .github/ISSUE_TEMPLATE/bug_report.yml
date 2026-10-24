@@ -48,7 +48,9 @@ body:
     validations:
       required: true
   - type: textarea
-    id: extra
+    id: media
     attributes:
-      label: Screenshots or logs
-      description: Drag images in or paste logs.
+      label: Screenshots, recordings or logs
+      description: Drag images or videos in, or paste logs.
+    validations:
+      required: false

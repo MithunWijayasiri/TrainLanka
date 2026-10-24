@@ -21,3 +21,10 @@ body:
     attributes:
       label: Alternatives
       description: Other ways you've considered or use today.
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or mockups
+      description: Drag images or videos in, or paste logs.
+    validations:
+      required: false

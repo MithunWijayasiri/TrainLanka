@@ -13,7 +13,7 @@ Same checks as CI (`.github/workflows/app.yml`). Run as 3 separate commands so e
 ./gradlew --console=plain :app:assembleRelease
 ```
 
-- APK → `app/build/outputs/apk/release/app-release.apk`.
+- APK → `app/build/outputs/apk/release/TrainLanka-<version>-release.apk`.
 - Release = R8 minify + shrinkResources, signed with debug key (sideload only). Types R8 must not rename need `@Keep` (e.g. `PickerField`: Navigation resolves enum route args by class name).
 - No unit tests yet (`junit` declared, no `app/src/test`).
 - Needs JDK 17 and `sdk.dir` in `local.properties`.
