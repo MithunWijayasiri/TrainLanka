@@ -33,6 +33,8 @@ jobs:
 
       - run: npm run crawl
         working-directory: crawler
+        env:
+          SOURCE_URL: ${{ secrets.SOURCE_URL }}
 
       - uses: actions/upload-artifact@v7
         with:

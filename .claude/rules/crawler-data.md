@@ -11,7 +11,7 @@ paths:
 
 ## Commands
 
-From `crawler/` (Node ≥ 22.18, runs `.ts` directly via type stripping, no build step):
+From `crawler/` (Node ≥ 22.18, runs `.ts` directly via type stripping, no build step). Source site origin comes from `SOURCE_URL`: `crawler/.env` locally (git-ignored, loaded by `npm run crawl`), `SOURCE_URL` repo secret in `crawl.yml`. Missing → crawl exits before any request. Never write the source site's name or URL in committed files.
 
 | Task | Command |
 | --- | --- |
@@ -24,7 +24,7 @@ Full crawl ≈ 1000+ requests at 1/s (`http.ts` `DELAY_MS`) → long; use `CACHE
 ## Data flow
 
 ```
-trainschedule.lk ─crawler─▶ data/timetable.json ─copyTimetable─▶ APK assets
+SOURCE_URL ─crawler─▶ data/timetable.json ─copyTimetable─▶ APK assets
                                    │
                                    └─ raw.githubusercontent.com/.../master/data/timetable.json ─▶ in-app update
 ```
@@ -46,7 +46,7 @@ trainschedule.lk ─crawler─▶ data/timetable.json ─copyTimetable─▶ APK
 
 ## Crawler (`crawler/src`)
 
-- `codes.ts`: reverse-engineered trainschedule.lk URL codes (base-36 ids + check chars) for `/station`, `/stops`, `/schedule`.
+- `codes.ts`: reverse-engineered source site URL codes (base-36 ids + check chars) for `/station`, `/stops`, `/schedule`.
 - `crawl.ts` pipeline: home page → station list; station pages → trains + phones; stops pages → routes + coords; schedule pages (next 14 dates) → train types. `province.ts` assigns provinces from pinned geoBoundaries ADM1 GeoJSON.
 - Fail-fast by design: unknown station/day, train data differing between pages, < 300 stations, < `MIN_TRAINS` trains, > `MAX_UNLOCATED` unlocated stations → exit 1, nothing written.
 - Per-train data problems (backward times, big gaps, missing times, no weekday days, absent from site search) → train dropped and logged, not fatal. Backward times ≤ 15 min are clamped; ≥ 12 h = midnight wrap.
