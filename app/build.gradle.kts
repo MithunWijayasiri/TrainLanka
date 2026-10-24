@@ -13,8 +13,22 @@ android {
         applicationId = "lk.trainlanka.app"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0-beta"
+        // Release workflow passes both from the typed version.
+        versionCode = providers.gradleProperty("appVersionCode").getOrElse("1").toInt()
+        versionName = providers.gradleProperty("appVersionName").getOrElse("0.1.0-beta")
+    }
+
+    // Set only by the release workflow; local and PR builds fall back to the debug key.
+    val releaseKeystore = providers.environmentVariable("RELEASE_KEYSTORE").orNull
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = providers.environmentVariable("RELEASE_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("RELEASE_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("RELEASE_KEY_PASSWORD").get()
+            }
+        }
     }
 
     buildTypes {
@@ -22,8 +36,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Debug key: sideloaded builds only, not for Play Store.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 
