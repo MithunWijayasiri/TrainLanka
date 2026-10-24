@@ -143,6 +143,8 @@ fun PrimaryButton(
     text: String,
     enabled: Boolean,
     modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     onClick: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -151,13 +153,13 @@ fun PrimaryButton(
             .fillMaxWidth()
             .height(56.dp)
             .clip(RoundedCornerShape(28.dp))
-            .background(if (enabled) MaterialTheme.colorScheme.primary else colors.disabled)
+            .background(if (enabled) color else colors.disabled)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text,
-            color = if (enabled) MaterialTheme.colorScheme.onPrimary else colors.onDisabled,
+            color = if (enabled) contentColor else colors.onDisabled,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
         )

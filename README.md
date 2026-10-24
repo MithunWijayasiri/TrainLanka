@@ -105,7 +105,7 @@ CI runs these checks on pull requests that change app, Gradle or data files:
 ## Credits
 
 - Province boundaries: © OpenStreetMap contributors, geoBoundaries.
-- Font: Atkinson Hyperlegible, under the SIL Open Font License. The license is in `app/licenses/`.
+- Fonts: Atkinson Hyperlegible and Sora, under the SIL Open Font License. The licenses are in `app/licenses/`.
 
 ## Disclaimer
 
