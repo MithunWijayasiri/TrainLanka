@@ -1,0 +1,26 @@
+Copyright (c) 2026 Mithun Wijayasiri. All rights reserved.
+
+The source code in this repository is published for viewing only. No license
+is granted to copy, modify, merge, publish, distribute, sublicense or sell any
+part of it, or to build and distribute apps from it, without prior written
+permission from the copyright holder.
+
+You may download and use the official Train Lanka release builds for personal
+use.
+
+Third-party material in this repository is not covered by this notice and
+stays under its own terms:
+
+- Atkinson Hyperlegible and Sora fonts: SIL Open Font License 1.1. The
+  license texts are in app/licenses/.
+- Province boundaries: (c) OpenStreetMap contributors, geoBoundaries,
+  Open Database License (ODbL) 1.0.
+- Timetable data in data/timetable.json is compiled from public timetable
+  sources. No ownership of that data is claimed.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

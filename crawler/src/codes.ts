@@ -1,4 +1,4 @@
-// trainschedule.lk URL codes, reverse-engineered: base-36 IDs over this alphabet, most significant first.
+// Source site URL codes, reverse-engineered: base-36 IDs over this alphabet, most significant first.
 const ALPHA = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 export function enc3(n: number): string {

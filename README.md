@@ -36,16 +36,12 @@ Requires Android 10 (API 29) or newer. English only for now.
 
 ## Install
 
-There is no GitHub release yet.
+**Option 1 (recommended): download the latest release.**
 
-**Option 1 (recommended): download a CI build.**
+1. On your Android phone, download [`TrainLanka.apk`](https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk) from the [latest release](https://github.com/MithunWijayasiri/TrainLanka/releases/latest), or use the button on the [Train Lanka website](https://mithunwijayasiri.github.io/TrainLanka/).
+2. Open the file. If Android asks, let your browser or file manager install unknown apps.
 
-1. Open the [App checks workflow](https://github.com/MithunWijayasiri/TrainLanka/actions/workflows/app.yml) and pick a successful run.
-2. Download the `train-lanka-apk` artifact. This needs a GitHub sign-in, and artifacts expire after 90 days.
-3. Unzip it and sideload the APK.
-
-> [!NOTE]
-> A debug key signs the APK. Use it for sideloading only, not for the Play Store.
+To update, install the newer APK over the old one. Your starred and recent routes stay.
 
 <details>
 <summary><b>Option 2: build from source</b></summary>
@@ -59,6 +55,9 @@ You need JDK 17 and the Android SDK. Set `sdk.dir` in `local.properties`, then r
 ```
 
 Gradle writes the APK to `app/build/outputs/apk/release/TrainLanka-<version>-release.apk`.
+
+> [!NOTE]
+> A debug key signs this APK, so it can't install over a release APK (or the other way round) without uninstalling first.
 
 </details>
 
@@ -102,10 +101,16 @@ CI runs these checks on pull requests that change app, Gradle or data files:
 
 `./gradlew ktlintFormat` fixes most ktlint issues.
 
+To publish a release, run the [Release workflow](https://github.com/MithunWijayasiri/TrainLanka/actions/workflows/release.yml) on `master` and type the version (for example `0.1.0-beta`). It builds a signed APK, tags `v<version>` and creates the GitHub release. The landing page in `site/` deploys to GitHub Pages when it changes on `master`.
+
 ## Credits
 
 - Province boundaries: © OpenStreetMap contributors, geoBoundaries.
 - Fonts: Atkinson Hyperlegible and Sora, under the SIL Open Font License. The licenses are in `app/licenses/`.
+
+## License
+
+© 2026 Mithun Wijayasiri. All rights reserved. The source code is public for viewing only. See [LICENSE](LICENSE) for details and for the third-party parts that keep their own licenses.
 
 ## Disclaimer
 

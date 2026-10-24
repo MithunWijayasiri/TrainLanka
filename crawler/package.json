@@ -6,7 +6,7 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "crawl": "node src/crawl.ts",
+    "crawl": "node --env-file-if-exists=.env src/crawl.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

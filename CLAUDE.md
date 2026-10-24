@@ -14,6 +14,9 @@ Offline Sri Lankan train timetables for Android (minSdk 29). Kotlin + Jetpack Co
 | `data/stations-extra.json` | Hand-kept aliases, province/lat/lng overrides | `.claude/rules/crawler-data.md` |
 | `.github/workflows/app.yml` | PR checks: ktlint, Android lint, release build, APK artifact | `gradle-checks` skill |
 | `.github/workflows/crawl.yml` | Weekly crawl, commits timetable if changed | `.claude/rules/crawler-data.md` |
+| `.github/workflows/release.yml` | Manual release from master: typed version → signed `TrainLanka.apk` on a GitHub release | — |
+| `.github/workflows/pages.yml` | Deploys `site/` to GitHub Pages on master | — |
+| `site/` | Static landing page, Download links to `releases/latest/download/TrainLanka.apk` | — |
 
 - Intentional code change that makes `.claude/rules/*.md`, a `.claude/skills/` file or this file wrong → update it in the same change.
 - Run ktlint / Android lint / release build → `gradle-checks` skill.

@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
-const BASE = 'https://trainschedule.lk';
+if (!process.env.SOURCE_URL) throw new Error('Set SOURCE_URL: crawler/.env locally, repo secret in CI');
+const BASE = process.env.SOURCE_URL;
 const USER_AGENT = 'TrainLankaCrawler/1.0 (+https://github.com/MithunWijayasiri/TrainLanka)';
 const DELAY_MS = 1000;
 const ATTEMPTS = 3;
@@ -30,7 +31,7 @@ export async function get(path: string): Promise<string> {
 
     let retryReason: string;
     try {
-      const res = await fetch(BASE + path, {
+      const res = await fetch(new URL(path, BASE), {
         headers: { 'User-Agent': USER_AGENT },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });

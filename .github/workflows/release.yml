@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, e.g. 0.1.0-beta (tagged v<version>)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # No write token here: Gradle plugins and dependencies run in this job.
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Holds the signing secrets; the environment only allows master.
+    environment: release
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Check ref
+        if: ${{ github.ref != 'refs/heads/master' }}
+        run: |
+          echo "::error::Run the release from master, not $GITHUB_REF"
+          exit 1
+
+      - name: Check version
+        id: version
+        run: |
+          if ! [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::Version must look like 1.2.3 or 1.2.3-beta, got '$VERSION'"
+            exit 1
+          fi
+          major=${BASH_REMATCH[1]} minor=${BASH_REMATCH[2]} patch=${BASH_REMATCH[3]}
+          if (( 10#$minor > 99 || 10#$patch > 99 )); then
+            echo "::error::Minor and patch must be 0-99"
+            exit 1
+          fi
+          code=$(( 10#$major * 10000 + 10#$minor * 100 + 10#$patch ))
+          if (( code == 0 )); then
+            echo "::error::Version 0.0.0 is not allowed"
+            exit 1
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Check signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing secret RELEASE_$name in the release environment"
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check tag is new
+        run: |
+          # --exit-code: 2 means no matching tag; anything else non-zero is a failed lookup.
+          status=0
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null || status=$?
+          case "$status" in
+            0) echo "::error::Tag v$VERSION already exists"; exit 1 ;;
+            2) ;;
+            *) echo "::error::Could not check remote tags (git exit $status)"; exit 1 ;;
+          esac
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Release build
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          export RELEASE_KEYSTORE="$RUNNER_TEMP/release.jks"
+          base64 --decode <<< "$KEYSTORE_BASE64" > "$RELEASE_KEYSTORE"
+          ./gradlew --console=plain :app:assembleRelease \
+            -PappVersionName="$VERSION" -PappVersionCode="$VERSION_CODE"
+          mv "app/build/outputs/apk/release/TrainLanka-$VERSION-release.apk" TrainLanka.apk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-apk
+          path: TrainLanka.apk
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-apk
+
+      # Not marked pre-release: the landing page links to releases/latest.
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v$VERSION" TrainLanka.apk \
+            --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes

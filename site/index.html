@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Train Lanka</title>
+<meta name="description" content="Offline Sri Lankan train timetables for Android. Pick two stations and see the next train, even without signal.">
+<meta property="og:title" content="Train Lanka">
+<meta property="og:description" content="Offline Sri Lankan train timetables for Android.">
+<meta property="og:image" content="https://mithunwijayasiri.github.io/TrainLanka/icon.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0F5C57">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Sora:wght@600;700&display=swap">
+<style>
+:root {
+  --teal: #0F5C57;
+  --teal-deep: #0A403C;
+  --cream: #F4ECD8;
+  --cream-edge: #E6DABD;
+  --amber: #F6B73C;
+  --ink: #16302D;
+  --muted: #4F6461;
+  --page: #FFFFFF;
+  --tint: #EAF2F0;
+  --line: #D5E2DF;
+  --link: #0F5C57;
+  --ticket-ink: #2B2A24;
+  --stamp: #B4412F;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #E3ECEA;
+    --muted: #A3B5B2;
+    --page: #111716;
+    --tint: #18221F;
+    --line: #2A3835;
+    --link: #7FC9BF;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #E3ECEA;
+  --muted: #A3B5B2;
+  --page: #111716;
+  --tint: #18221F;
+  --line: #2A3835;
+  --link: #7FC9BF;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 400 1.0625rem/1.6 "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+h1, h2, h3 { font-family: Sora, system-ui, sans-serif; font-weight: 700; line-height: 1.15; margin: 0; }
+a { color: var(--link); }
+a:focus-visible, .button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 640px) { .wrap { padding: 0 32px; } }
+
+/* Hero */
+.band {
+  background: var(--teal);
+  color: #fff;
+  padding-bottom: 80px;
+  overflow: hidden;
+}
+.top { display: flex; align-items: center; justify-content: space-between; padding-top: 20px; }
+.brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; }
+.brand img { width: 40px; height: 40px; border-radius: 10px; }
+.brand span { font: 700 1.25rem Sora, sans-serif; }
+.top a.gh { color: #fff; font-weight: 700; }
+.hero { display: grid; gap: 48px; align-items: center; padding-top: 56px; }
+@media (min-width: 900px) { .hero { grid-template-columns: 1.05fr 1fr; padding-top: 72px; } }
+.hero h1 { font-size: clamp(2.25rem, 5.4vw, 3.6rem); letter-spacing: -0.02em; max-width: 13ch; }
+.hero p.lede { font-size: 1.1875rem; max-width: 36ch; margin: 20px 0 32px; color: #D9EAE7; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.button {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--amber); color: #1F1A0E;
+  font: 700 1.0625rem Sora, sans-serif;
+  padding: 16px 28px; border-radius: 999px; text-decoration: none;
+  box-shadow: 0 2px 0 #C98F1F;
+}
+.button:hover { background: #F8C35A; }
+.button svg { width: 20px; height: 20px; }
+.req { color: #CFE3DF; font-size: 0.9375rem; }
+
+/* Ticket */
+.ticket-stage { display: flex; justify-content: center; }
+.ticket {
+  --hole: 14px;
+  --stub: 104px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr var(--stub);
+  width: min(100%, 470px);
+  background: var(--cream);
+  color: var(--ticket-ink);
+  border-radius: 10px;
+  transform: rotate(-4deg);
+  box-shadow: 0 24px 40px -18px rgba(0, 20, 18, 0.55);
+  -webkit-mask:
+    radial-gradient(circle var(--hole) at calc(100% - var(--stub)) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--hole) at calc(100% - var(--stub)) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle var(--hole) at calc(100% - var(--stub)) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--hole) at calc(100% - var(--stub)) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+  animation: issue 900ms cubic-bezier(.2, .8, .2, 1) 150ms both;
+}
+@keyframes issue {
+  from { transform: translateY(48px) rotate(2deg); opacity: 0; }
+  to { transform: rotate(-4deg); opacity: 1; }
+}
+.ticket .main { padding: 22px 22px 20px; }
+.ticket .stub {
+  border-left: 2px dashed var(--cream-edge);
+  padding: 22px 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  text-align: center;
+}
+.t-line { font: 600 0.75rem Sora, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6455; }
+.t-route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; margin: 14px 0 18px; }
+.t-route b { display: block; font: 700 1.375rem/1.1 Sora, sans-serif; }
+.t-route .to { text-align: right; }
+.t-route small { display: block; font-size: 0.875rem; margin-top: 4px; }
+.t-route svg { width: 28px; height: 28px; margin-bottom: 4px; color: var(--teal); }
+.t-meta { display: flex; justify-content: space-between; border-top: 1px solid var(--cream-edge); padding-top: 12px; font-size: 0.875rem; }
+.t-meta span b { display: block; font: 700 1rem Sora, sans-serif; }
+.stub .no { font: 700 1.5rem Sora, sans-serif; writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.04em; }
+.punch { width: 18px; height: 18px; border-radius: 50%; background: var(--teal); box-shadow: inset 0 2px 3px rgba(0,0,0,.35); }
+.stamp {
+  position: absolute; right: calc(var(--stub) + 18px); bottom: 20px;
+  border: 2.5px solid var(--stamp); color: var(--stamp);
+  border-radius: 8px; padding: 4px 10px;
+  font: 700 0.875rem Sora, sans-serif; letter-spacing: 0.06em; text-transform: uppercase;
+  transform: rotate(-12deg); opacity: 0.82; mix-blend-mode: multiply;
+}
+@media (max-width: 420px) {
+  .ticket { --stub: 76px; --hole: 11px; }
+  .t-route b { font-size: 1.125rem; }
+}
+
+/* Sections */
+section { padding: 72px 0; }
+section h2 { font-size: clamp(1.75rem, 3.4vw, 2.375rem); letter-spacing: -0.01em; max-width: 20ch; }
+.intro { color: var(--muted); max-width: 52ch; margin: 14px 0 0; }
+
+.features { display: grid; gap: 56px; align-items: start; }
+@media (min-width: 900px) { .features { grid-template-columns: 1fr 340px; } }
+.flist { list-style: none; padding: 0; margin: 36px 0 0; display: grid; gap: 28px; }
+@media (min-width: 640px) { .flist { grid-template-columns: 1fr 1fr; gap: 32px 40px; } }
+.flist h3 { font-size: 1.125rem; margin-bottom: 6px; }
+.flist p { margin: 0; color: var(--muted); }
+
+/* Phone mockup of the Results screen */
+.phone {
+  justify-self: center;
+  width: 300px; border-radius: 40px; padding: 12px;
+  background: #1E2523;
+  box-shadow: 0 30px 60px -30px rgba(0, 30, 27, 0.6);
+}
+@media (min-width: 900px) { .phone { position: sticky; top: 32px; } }
+.screen {
+  position: relative;
+  background: #FFFFFF; color: #16302D;
+  border-radius: 30px; overflow: hidden;
+  font-size: 0.75rem; line-height: 1.35;
+  height: 600px;
+}
+.s-bar { display: flex; align-items: center; gap: 10px; padding: 18px 16px 10px; font: 700 0.9375rem Sora, sans-serif; }
+.s-bar svg { width: 18px; height: 18px; flex: none; }
+.s-hero { margin: 4px 12px 0; padding: 14px; border-radius: 18px; background: var(--teal); color: #fff; }
+.s-hero .when { display: inline-block; background: var(--amber); color: #1F1A0E; border-radius: 999px; padding: 2px 10px; font-weight: 700; }
+.s-hero .times { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 4px; font: 700 1.375rem Sora, sans-serif; }
+.s-hero .times small { font: 400 0.75rem "Atkinson Hyperlegible", sans-serif; color: #CFE3DF; }
+.s-hero p { margin: 0; color: #CFE3DF; }
+.pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 12px 6px; }
+.pills span { text-align: center; padding: 5px 0; border-radius: 999px; font-weight: 700; font-size: 0.6875rem; }
+.p-ie { background: #C9E4F5; color: #154A6B; }
+.p-ex { background: #D7EEDC; color: #1F5A2E; }
+.p-se { background: #FBE7BE; color: #6A4A06; }
+.p-sl { border: 1.5px dashed #9AAEAB; color: #6F8380; }
+.rows { margin: 0 12px; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 10px 2px; border-bottom: 1px solid #E3ECEA; }
+.row b { font: 700 0.9375rem Sora, sans-serif; }
+.row .dur { text-align: right; color: #4F6461; }
+.row .sub { grid-column: 1 / -1; color: #4F6461; }
+.s-dates {
+  position: absolute; left: 12px; right: 12px; bottom: 14px;
+  display: flex; gap: 8px; align-items: center;
+}
+.seg { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); background: #EAF2F0; border-radius: 999px; padding: 4px; font-weight: 700; text-align: center; }
+.seg span { padding: 7px 0; border-radius: 999px; }
+.seg .on { background: var(--teal); color: #fff; }
+.swap { width: 38px; height: 38px; border-radius: 50%; background: var(--teal); display: grid; place-items: center; color: #fff; }
+.swap svg { width: 18px; height: 18px; }
+
+.alt { background: var(--tint); }
+
+/* Install */
+.steps { list-style: none; counter-reset: step; padding: 0; margin: 40px 0 0; display: grid; gap: 24px; }
+@media (min-width: 760px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+.steps li { counter-increment: step; position: relative; padding-top: 56px; }
+.steps li::before {
+  content: counter(step);
+  position: absolute; top: 0; left: 0;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--teal); color: #fff; font: 700 1.125rem Sora, sans-serif;
+}
+.steps h3 { font-size: 1.125rem; margin-bottom: 6px; }
+.steps p { margin: 0; color: var(--muted); }
+.note { margin: 36px 0 0; max-width: 64ch; color: var(--muted); }
+
+/* Roadmap: stations on a line, track ahead dashed */
+.roadmap { list-style: none; padding: 0; margin: 40px 0 0; display: grid; gap: 32px; }
+.roadmap li { position: relative; padding-left: 48px; }
+.roadmap .dot {
+  position: absolute; top: 0; left: 0;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--page); border: 4px solid var(--link);
+}
+.roadmap .now .dot { background: var(--amber); }
+.roadmap li:not(:last-child)::after {
+  content: "";
+  position: absolute; top: 30px; bottom: -28px; left: 11px; width: 4px;
+  background: repeating-linear-gradient(180deg, var(--link) 0 8px, transparent 8px 15px);
+}
+.roadmap .status {
+  display: inline-block; margin-bottom: 8px;
+  padding: 1px 10px; border-radius: 999px;
+  border: 1.5px solid var(--line); color: var(--muted);
+  font-size: 0.875rem; font-weight: 700;
+}
+.roadmap .now .status { background: var(--amber); border-color: var(--amber); color: #1F1A0E; }
+.roadmap h3 { font-size: 1.125rem; margin-bottom: 6px; }
+.roadmap p { margin: 0; color: var(--muted); }
+@media (min-width: 760px) {
+  .roadmap { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .roadmap li { padding: 48px 24px 0 0; }
+  .roadmap li:not(:last-child)::after {
+    top: 11px; bottom: auto; left: 34px; right: -20px; width: auto; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--link) 0 8px, transparent 8px 15px);
+  }
+}
+
+/* Privacy */
+.privacy { display: grid; gap: 32px; }
+@media (min-width: 760px) { .privacy { grid-template-columns: 1fr 1fr; gap: 48px; } }
+.privacy h3 { font-size: 1.25rem; margin-bottom: 8px; }
+.privacy p { margin: 0; color: var(--muted); }
+
+footer { background: var(--teal); color: #CFE3DF; padding: 56px 0 40px; font-size: 0.9375rem; }
+footer a { color: #fff; }
+.foot-top { display: grid; gap: 32px; padding-bottom: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.18); }
+@media (min-width: 760px) { .foot-top { grid-template-columns: 1fr auto; align-items: start; } }
+.foot-top p { margin: 12px 0 0; }
+.foot-links { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; font-weight: 700; }
+@media (min-width: 560px) { .foot-links { grid-template-columns: repeat(2, auto); gap: 10px 40px; } }
+.foot-legal { padding-top: 24px; }
+.foot-legal p { margin: 0 0 12px; max-width: 70ch; }
+.foot-legal strong { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <nav class="top" aria-label="Site">
+      <a class="brand" href="./"><img src="icon.png" alt=""><span>Train Lanka</span></a>
+      <a class="gh" href="https://github.com/MithunWijayasiri/TrainLanka">GitHub</a>
+    </nav>
+
+    <div class="hero">
+      <div>
+        <h1>Sri Lankan train times, even with no signal</h1>
+        <p class="lede">Train Lanka keeps the whole timetable on your phone. Pick two stations and see your next train, with no account and no internet needed.</p>
+        <div class="actions">
+          <a class="button" href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+            Download APK
+          </a>
+          <span class="req">Free, no sign-up</span>
+        </div>
+      </div>
+
+      <div class="ticket-stage" aria-hidden="true">
+        <div class="ticket">
+          <div class="main">
+            <div class="t-line">Express to Matara</div>
+            <div class="t-route">
+              <div><b>Colombo Fort</b><small>Dep 8:35 AM</small></div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M14 6l6 6-6 6"/></svg>
+              <div class="to"><b>Galle</b><small>Arr 10:48 AM</small></div>
+            </div>
+            <div class="t-meta">
+              <span>Journey<b>2h 13m</b></span>
+            </div>
+          </div>
+          <div class="stub">
+            <span class="t-line">Train</span>
+            <span class="no">8040</span>
+            <span class="punch"></span>
+          </div>
+          <span class="stamp">Works offline</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="wrap features">
+      <div>
+        <h2>Pick two stations, see the next train</h2>
+        <p class="intro">Results put upcoming trains first, in a font made to be easy to read.</p>
+        <ul class="flist">
+          <li>
+            <h3>Search handles typos</h3>
+            <p>Stations are grouped by province. Type "Gampha" and you still get Gampaha; "Pettah" finds Colombo Fort.</p>
+          </li>
+          <li>
+            <h3>Next train up top</h3>
+            <p>Results start with the next departure and a countdown. Trains that already left stay hidden until you tap Show earlier trains.</p>
+          </li>
+          <li>
+            <h3>Any day you like</h3>
+            <p>Check today, tomorrow or any date. After the last train tonight, tomorrow's first trains follow.</p>
+          </li>
+          <li>
+            <h3>Every stop on the line</h3>
+            <p>Tap a train to see all its stops and times, with your part of the journey highlighted.</p>
+          </li>
+          <li>
+            <h3>Starred routes and a widget</h3>
+            <p>Star the routes you take most. The home-screen widget shows the next three trains on your first one.</p>
+          </li>
+          <li>
+            <h3>Nearest station</h3>
+            <p>One tap finds the closest station. The app reads your location only then, never in the background.</p>
+          </li>
+        </ul>
+      </div>
+
+      <div class="phone" role="img" aria-label="The Train Lanka results screen for Colombo Fort to Galle, showing the next train in 12 minutes">
+        <div class="screen">
+          <div class="s-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+            Colombo Fort to Galle
+          </div>
+          <div class="s-hero">
+            <span class="when">Next train in 12 min</span>
+            <div class="times">8:35 AM <small>to</small> 10:48 AM</div>
+            <p>2h 13m, Express 8040 to Matara</p>
+          </div>
+          <div class="pills">
+            <span class="p-ie">Inter Ex</span>
+            <span class="p-ex">Express</span>
+            <span class="p-se">Sem. Ex</span>
+            <span class="p-sl">Slow</span>
+          </div>
+          <div class="rows">
+            <div class="row"><b>10:30 AM</b><span class="dur">2h 19m</span><span class="sub">Express 4086 to Beliaththa</span></div>
+            <div class="row"><b>12:16 PM</b><span class="dur">3h 6m</span><span class="sub">Semi Express 8788 to Galle</span></div>
+            <div class="row"><b>2:40 PM</b><span class="dur">2h 17m</span><span class="sub">Express 8056 to Beliaththa</span></div>
+            <div class="row"><b>3:50 PM</b><span class="dur">2h 7m</span><span class="sub">Express 8058 to Matara</span></div>
+            <div class="row"><b>4:47 PM</b><span class="dur">2h 17m</span><span class="sub">Express 8096 to Beliaththa</span></div>
+          </div>
+          <div class="s-dates">
+            <div class="seg"><span class="on">Today</span><span>Tomorrow</span><span>Date</span></div>
+            <span class="swap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <h2>Install it in three steps</h2>
+      <p class="intro">Train Lanka isn't on the Play Store yet, so you install the APK file directly.</p>
+      <ol class="steps">
+        <li>
+          <h3>Download the APK</h3>
+          <p>Tap <a href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk">Download APK</a> on your Android phone. It's the latest release from GitHub.</p>
+        </li>
+        <li>
+          <h3>Allow the install</h3>
+          <p>Open the file. If Android asks, let your browser or file manager install unknown apps.</p>
+        </li>
+        <li>
+          <h3>Open Train Lanka</h3>
+          <p>The timetable is already inside, so it works straight away, even offline.</p>
+        </li>
+      </ol>
+      <p class="note">To update, download the newest APK and install it over the old one. Your starred routes stay. Older versions are on the <a href="https://github.com/MithunWijayasiri/TrainLanka/releases">releases page</a>.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Where Train Lanka goes next</h2>
+      <p class="intro">Today you install it from GitHub. App stores come next.</p>
+      <ol class="roadmap">
+        <li class="now">
+          <span class="dot"></span>
+          <span class="status">Available now</span>
+          <h3>GitHub releases</h3>
+          <p>Download the APK from this page and install it yourself.</p>
+        </li>
+        <li>
+          <span class="dot"></span>
+          <span class="status">Next</span>
+          <h3>Google Play</h3>
+          <p>Install and get updates from the Play Store.</p>
+        </li>
+        <li>
+          <span class="dot"></span>
+          <span class="status">Later</span>
+          <h3>Apple App Store</h3>
+          <p>Get Train Lanka on iPhone from the App Store.</p>
+        </li>
+      </ol>
+      <p class="note">Also planned: Sinhala and Tamil, for the app and for station search.</p>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap privacy">
+      <div>
+        <h3>Works without internet</h3>
+        <p>The full timetable ships inside the app. Once a day it checks for a newer one and asks before using it.</p>
+      </div>
+      <div>
+        <h3>No tracking</h3>
+        <p>No account, no ads, no analytics. The app never sends your searches or location anywhere.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div>
+        <a class="brand" href="./"><img src="icon.png" alt=""><span>Train Lanka</span></a>
+        <p>Offline Sri Lankan train timetables for Android.</p>
+      </div>
+      <nav aria-label="Footer">
+        <ul class="foot-links">
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk">Download APK</a></li>
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka/releases">All releases</a></li>
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka/issues/new/choose">Report a problem</a></li>
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka">Source code</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="foot-legal">
+      <p><strong>Not affiliated with Sri Lanka Railways.</strong> Times may be wrong or out of date, and Poya and public-holiday schedules may differ. Confirm with Sri Lanka Railways (hotline 1971) before you travel.</p>
+      <p>No booking, fares or live tracking. Province boundaries &copy; OpenStreetMap contributors, geoBoundaries.</p>
+      <p>&copy; 2026 Mithun Wijayasiri</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
