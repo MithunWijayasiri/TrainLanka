@@ -3,6 +3,7 @@ package lk.trainlanka.app.ui.stops
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -23,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.SpanStyle
@@ -31,7 +31,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -99,11 +98,11 @@ fun StopsScreen(
                 )
             }
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 4.dp)) {
-                Text("ARR · DEP", Modifier.width(96.dp), color = colors.faint, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("TIME", Modifier.width(96.dp), color = colors.faint, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(28.dp))
                 Text("STATION", color = colors.faint, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
-            LazyColumn(Modifier.weight(1f), state = listState) {
+            LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(bottom = 16.dp)) {
                 itemsIndexed(stops) { i, stop ->
                     val kind =
                         when {
@@ -112,14 +111,8 @@ fun StopsScreen(
                             i == toIndex -> StopKind.GET_OFF
                             else -> StopKind.MIDDLE
                         }
-                    val times =
-                        when {
-                            i == 0 -> listOf(stop.dep)
-                            i == stops.lastIndex -> listOf(stop.arr)
-                            stop.arr == stop.dep -> listOf(stop.arr)
-                            else -> listOf(stop.arr, stop.dep)
-                        }
-                    StopRow(kind, times, tt.station(stop.stationId).name, clock24)
+                    val time = if (kind == StopKind.GET_OFF || i == stops.lastIndex) stop.arr else stop.dep
+                    StopRow(kind, time, tt.station(stop.stationId).name, clock24)
                 }
             }
         }
@@ -129,7 +122,7 @@ fun StopsScreen(
 @Composable
 private fun StopRow(
     kind: StopKind,
-    times: List<Int>,
+    time: Int,
     name: String,
     clock24: Boolean,
 ) {
@@ -155,7 +148,13 @@ private fun StopRow(
         Modifier.fillMaxWidth().height(if (endpoint) 48.dp else 34.dp).then(box),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TimeCell(times, clock24, textSize, if (endpoint) FontWeight.Bold else FontWeight.Normal, textColor, Modifier.width(96.dp))
+        TimeText(
+            formatMinutes(time, clock24),
+            textSize,
+            Modifier.width(96.dp),
+            textColor,
+            if (endpoint) FontWeight.Bold else FontWeight.Normal,
+        )
         Rail(kind, Modifier.width(28.dp).fillMaxHeight())
         if (endpoint) {
             Column {
@@ -177,24 +176,6 @@ private fun StopRow(
         } else {
             Text(name, color = textColor, fontSize = textSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-    }
-}
-
-// 12-hour arrival/departure pairs stack on two lines to fit the 96dp column.
-@Composable
-private fun TimeCell(
-    times: List<Int>,
-    clock24: Boolean,
-    fontSize: TextUnit,
-    weight: FontWeight,
-    color: Color,
-    modifier: Modifier,
-) {
-    val text = times.map { formatMinutes(it, clock24) }
-    when {
-        text.size == 1 -> TimeText(text[0], fontSize, modifier, color, weight)
-        clock24 -> Text(text.joinToString(" · "), modifier, color = color, fontSize = fontSize, fontWeight = weight, maxLines = 1)
-        else -> Column(modifier) { text.forEach { TimeText(it, 12.sp, color = color, fontWeight = weight) } }
     }
 }
 
