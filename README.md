@@ -58,7 +58,7 @@ You need JDK 17 and the Android SDK. Set `sdk.dir` in `local.properties`, then r
 ./gradlew :app:assembleRelease
 ```
 
-Gradle writes the APK to `app/build/outputs/apk/release/app-release.apk`.
+Gradle writes the APK to `app/build/outputs/apk/release/TrainLanka-<version>-release.apk`.
 
 </details>
 

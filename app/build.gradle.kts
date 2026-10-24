@@ -38,6 +38,10 @@ android {
     }
 }
 
+base {
+    archivesName = "TrainLanka-${android.defaultConfig.versionName}"
+}
+
 ktlint {
     version = libs.versions.ktlint.get()
 }

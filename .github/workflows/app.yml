@@ -56,5 +56,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: train-lanka-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
