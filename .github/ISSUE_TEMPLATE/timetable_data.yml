@@ -44,3 +44,10 @@ body:
       description: e.g. station notice board, railway website, your own trip.
     validations:
       required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Proof (photo, screenshot or link)
+      description: Drag images or videos in, or paste logs.
+    validations:
+      required: false
