@@ -70,10 +70,14 @@ jobs:
 
       - name: Check tag is new
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
-            echo "::error::Tag v$VERSION already exists"
-            exit 1
-          fi
+          # --exit-code: 2 means no matching tag; anything else non-zero is a failed lookup.
+          status=0
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null || status=$?
+          case "$status" in
+            0) echo "::error::Tag v$VERSION already exists"; exit 1 ;;
+            2) ;;
+            *) echo "::error::Could not check remote tags (git exit $status)"; exit 1 ;;
+          esac
 
       - uses: actions/setup-java@v6
         with:
