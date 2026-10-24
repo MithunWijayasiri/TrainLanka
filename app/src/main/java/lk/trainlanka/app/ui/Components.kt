@@ -10,16 +10,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -178,6 +181,67 @@ fun OutlinedPill(
         contentAlignment = Alignment.Center,
     ) {
         Text(text, color = color, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+val SegmentedBarHeight = 52.dp
+
+/** Rounded bar of equal-width [Segment]s: Results date bar and Settings options. */
+@Composable
+fun SegmentedBar(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(26.dp)
+    Row(
+        modifier
+            .height(SegmentedBarHeight)
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        content = content,
+    )
+}
+
+@Composable
+fun RowScope.Segment(
+    label: String,
+    selected: Boolean,
+    sub: String? = null,
+    enabled: Boolean = true,
+    dropdown: Boolean = false,
+    role: Role = Role.RadioButton,
+    onClick: () -> Unit,
+) {
+    val color =
+        when {
+            !enabled -> AppTheme.colors.faint
+            selected -> MaterialTheme.colorScheme.onSecondaryContainer
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+    Row(
+        Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+            .selectable(selected, enabled = enabled, role = role, onClick = onClick)
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                label,
+                color = color,
+                fontSize = 14.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                maxLines = 1,
+            )
+            if (sub != null) Text(sub, color = color, fontSize = 11.sp, maxLines = 1)
+        }
+        if (dropdown) Icon(Icons.Rounded.ArrowDropDown, contentDescription = null, Modifier.size(18.dp), tint = color)
     }
 }
 

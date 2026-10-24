@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,12 +21,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
@@ -60,7 +56,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
@@ -89,6 +84,9 @@ import lk.trainlanka.app.ui.AppViewModel
 import lk.trainlanka.app.ui.EmptyState
 import lk.trainlanka.app.ui.HolidayNote
 import lk.trainlanka.app.ui.PrimaryButton
+import lk.trainlanka.app.ui.Segment
+import lk.trainlanka.app.ui.SegmentedBar
+import lk.trainlanka.app.ui.SegmentedBarHeight
 import lk.trainlanka.app.ui.TimeText
 import lk.trainlanka.app.ui.TopBar
 import lk.trainlanka.app.ui.TypeBadge
@@ -106,7 +104,6 @@ private val TrainTypes =
         "Slow" to "Slow",
     )
 
-private val DateBarHeight = 52.dp
 private val DateBarMargin = 16.dp
 private val DateBarShadow = 3.dp
 
@@ -370,7 +367,7 @@ private fun ResultsList(
         modifier,
         contentPadding =
             PaddingValues(
-                bottom = DateBarHeight + DateBarMargin + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                bottom = SegmentedBarHeight + DateBarMargin + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
             ),
     ) {
         if (showEarlier) {
@@ -669,7 +666,6 @@ private fun DateBar(
     onSwap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(26.dp)
     val picked = (mode as? DayMode.Picked)?.date
     Row(
         modifier
@@ -678,23 +674,14 @@ private fun DateBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier
-                .weight(1f)
-                .height(DateBarHeight)
-                .shadow(DateBarShadow, shape)
-                .background(MaterialTheme.colorScheme.surface, shape)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Segment("Today", mode == DayMode.Today) { onSelect(DayMode.Today) }
-            Segment("Tomorrow", mode == DayMode.Tomorrow) { onSelect(DayMode.Tomorrow) }
-            Segment(picked?.let(::formatDay) ?: "Date", picked != null, dropdown = picked == null, onClick = onPick)
+        SegmentedBar(Modifier.weight(1f).shadow(DateBarShadow, RoundedCornerShape(26.dp))) {
+            Segment("Today", mode == DayMode.Today, role = Role.Tab) { onSelect(DayMode.Today) }
+            Segment("Tomorrow", mode == DayMode.Tomorrow, role = Role.Tab) { onSelect(DayMode.Tomorrow) }
+            Segment(picked?.let(::formatDay) ?: "Date", picked != null, dropdown = picked == null, role = Role.Tab, onClick = onPick)
         }
         Box(
             Modifier
-                .size(DateBarHeight)
+                .size(SegmentedBarHeight)
                 .shadow(DateBarShadow, CircleShape)
                 .background(AppTheme.colors.hero, CircleShape)
                 .clickable(role = Role.Button, onClick = onSwap),
@@ -702,36 +689,6 @@ private fun DateBar(
         ) {
             Icon(Icons.Rounded.SwapVert, contentDescription = "Swap stations", tint = AppTheme.colors.onHero)
         }
-    }
-}
-
-@Composable
-private fun RowScope.Segment(
-    label: String,
-    selected: Boolean,
-    dropdown: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
-    Row(
-        Modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(22.dp))
-            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-            .selectable(selected, role = Role.Tab, onClick = onClick)
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            color = color,
-            fontSize = 14.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            maxLines = 1,
-        )
-        if (dropdown) Icon(Icons.Rounded.ArrowDropDown, contentDescription = null, Modifier.size(18.dp), tint = color)
     }
 }
 
