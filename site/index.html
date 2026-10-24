@@ -201,8 +201,9 @@ section h2 { font-size: clamp(1.75rem, 3.4vw, 2.375rem); letter-spacing: -0.01em
 .swap { width: 38px; height: 38px; border-radius: 50%; background: var(--teal); display: grid; place-items: center; color: #fff; }
 .swap svg { width: 18px; height: 18px; }
 
+.alt { background: var(--tint); }
+
 /* Install */
-.install { background: var(--tint); }
 .steps { list-style: none; counter-reset: step; padding: 0; margin: 40px 0 0; display: grid; gap: 24px; }
 @media (min-width: 760px) { .steps { grid-template-columns: repeat(3, 1fr); } }
 .steps li { counter-increment: step; position: relative; padding-top: 56px; }
@@ -217,15 +218,54 @@ section h2 { font-size: clamp(1.75rem, 3.4vw, 2.375rem); letter-spacing: -0.01em
 .steps p { margin: 0; color: var(--muted); }
 .note { margin: 36px 0 0; max-width: 64ch; color: var(--muted); }
 
+/* Roadmap: stations on a line, track ahead dashed */
+.roadmap { list-style: none; padding: 0; margin: 40px 0 0; display: grid; gap: 32px; }
+.roadmap li { position: relative; padding-left: 48px; }
+.roadmap .dot {
+  position: absolute; top: 0; left: 0;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--page); border: 4px solid var(--link);
+}
+.roadmap .now .dot { background: var(--amber); }
+.roadmap li:not(:last-child)::after {
+  content: "";
+  position: absolute; top: 30px; bottom: -28px; left: 11px; width: 4px;
+  background: repeating-linear-gradient(180deg, var(--link) 0 8px, transparent 8px 15px);
+}
+.roadmap .status {
+  display: inline-block; margin-bottom: 8px;
+  padding: 1px 10px; border-radius: 999px;
+  border: 1.5px solid var(--line); color: var(--muted);
+  font-size: 0.875rem; font-weight: 700;
+}
+.roadmap .now .status { background: var(--amber); border-color: var(--amber); color: #1F1A0E; }
+.roadmap h3 { font-size: 1.125rem; margin-bottom: 6px; }
+.roadmap p { margin: 0; color: var(--muted); }
+@media (min-width: 760px) {
+  .roadmap { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .roadmap li { padding: 48px 24px 0 0; }
+  .roadmap li:not(:last-child)::after {
+    top: 11px; bottom: auto; left: 34px; right: -20px; width: auto; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--link) 0 8px, transparent 8px 15px);
+  }
+}
+
 /* Privacy */
 .privacy { display: grid; gap: 32px; }
 @media (min-width: 760px) { .privacy { grid-template-columns: 1fr 1fr; gap: 48px; } }
 .privacy h3 { font-size: 1.25rem; margin-bottom: 8px; }
 .privacy p { margin: 0; color: var(--muted); }
 
-footer { border-top: 1px solid var(--line); padding: 40px 0 56px; color: var(--muted); font-size: 0.9375rem; }
-footer p { margin: 0 0 12px; max-width: 70ch; }
-footer strong { color: var(--ink); }
+footer { background: var(--teal); color: #CFE3DF; padding: 56px 0 40px; font-size: 0.9375rem; }
+footer a { color: #fff; }
+.foot-top { display: grid; gap: 32px; padding-bottom: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.18); }
+@media (min-width: 760px) { .foot-top { grid-template-columns: 1fr auto; align-items: start; } }
+.foot-top p { margin: 12px 0 0; }
+.foot-links { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; font-weight: 700; }
+@media (min-width: 560px) { .foot-links { grid-template-columns: repeat(2, auto); gap: 10px 40px; } }
+.foot-legal { padding-top: 24px; }
+.foot-legal p { margin: 0 0 12px; max-width: 70ch; }
+.foot-legal strong { color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
   .ticket { animation: none; }
@@ -346,7 +386,7 @@ footer strong { color: var(--ink); }
     </div>
   </section>
 
-  <section class="install">
+  <section class="alt">
     <div class="wrap">
       <h2>Install it in three steps</h2>
       <p class="intro">Train Lanka isn't on the Play Store yet, so you install the APK file directly.</p>
@@ -369,6 +409,34 @@ footer strong { color: var(--ink); }
   </section>
 
   <section>
+    <div class="wrap">
+      <h2>Where Train Lanka goes next</h2>
+      <p class="intro">Today you install it from GitHub. App stores come next.</p>
+      <ol class="roadmap">
+        <li class="now">
+          <span class="dot"></span>
+          <span class="status">Available now</span>
+          <h3>GitHub releases</h3>
+          <p>Download the APK from this page and install it yourself.</p>
+        </li>
+        <li>
+          <span class="dot"></span>
+          <span class="status">Next</span>
+          <h3>Google Play</h3>
+          <p>Install and get updates from the Play Store.</p>
+        </li>
+        <li>
+          <span class="dot"></span>
+          <span class="status">Later</span>
+          <h3>Apple App Store</h3>
+          <p>An iPhone version of Train Lanka.</p>
+        </li>
+      </ol>
+      <p class="note">Also planned: Sinhala and Tamil, for the app and for station search.</p>
+    </div>
+  </section>
+
+  <section class="alt">
     <div class="wrap privacy">
       <div>
         <h3>Works without internet</h3>
@@ -384,8 +452,25 @@ footer strong { color: var(--ink); }
 
 <footer>
   <div class="wrap">
-    <p><strong>Not affiliated with Sri Lanka Railways.</strong> Times may be wrong or out of date, and Poya and public-holiday schedules may differ. Confirm with Sri Lanka Railways (hotline 1971) before you travel.</p>
-    <p>No booking, fares or live tracking. Open source on <a href="https://github.com/MithunWijayasiri/TrainLanka">GitHub</a>. Province boundaries &copy; OpenStreetMap contributors, geoBoundaries.</p>
+    <div class="foot-top">
+      <div>
+        <a class="brand" href="./"><img src="icon.png" alt=""><span>Train Lanka</span></a>
+        <p>Offline Sri Lankan train timetables for Android.</p>
+      </div>
+      <nav aria-label="Footer">
+        <ul class="foot-links">
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk">Download APK</a></li>
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka/releases">All releases</a></li>
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka/issues/new/choose">Report a problem</a></li>
+          <li><a href="https://github.com/MithunWijayasiri/TrainLanka">Source code</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="foot-legal">
+      <p><strong>Not affiliated with Sri Lanka Railways.</strong> Times may be wrong or out of date, and Poya and public-holiday schedules may differ. Confirm with Sri Lanka Railways (hotline 1971) before you travel.</p>
+      <p>No booking, fares or live tracking. Province boundaries &copy; OpenStreetMap contributors, geoBoundaries.</p>
+      <p>&copy; 2026 Mithun Wijayasiri</p>
+    </div>
   </div>
 </footer>
 
