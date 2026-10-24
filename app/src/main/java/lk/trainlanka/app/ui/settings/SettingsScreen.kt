@@ -147,7 +147,7 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Text("Source code on GitHub", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
+                    Text("View on GitHub", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
                     Text(GITHUB_URL.removePrefix("https://"), color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
                 }
                 Text(
