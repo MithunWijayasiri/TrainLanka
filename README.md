@@ -108,6 +108,10 @@ To publish a release, run the [Release workflow](https://github.com/MithunWijaya
 - Province boundaries: © OpenStreetMap contributors, geoBoundaries.
 - Fonts: Atkinson Hyperlegible and Sora, under the SIL Open Font License. The licenses are in `app/licenses/`.
 
+## License
+
+© 2026 Mithun Wijayasiri. All rights reserved. The source code is public for viewing only. See [LICENSE](LICENSE) for details and for the third-party parts that keep their own licenses.
+
 ## Disclaimer
 
 Train Lanka is not affiliated with Sri Lanka Railways. Times may be wrong or outdated, so please confirm with Sri Lanka Railways (hotline 1971) before you travel.
