@@ -2,6 +2,7 @@ package lk.trainlanka.app.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,8 @@ import lk.trainlanka.app.ui.TextAction
 import lk.trainlanka.app.ui.TopBar
 import lk.trainlanka.app.ui.theme.AppTheme
 
+private const val GITHUB_URL = "https://github.com/MithunWijayasiri/TrainLanka"
+
 @Composable
 fun SettingsScreen(
     vm: AppViewModel,
@@ -61,6 +65,7 @@ fun SettingsScreen(
     val pendingVersion by vm.pendingVersion.collectAsStateWithLifecycle()
     val checking by vm.checking.collectAsStateWithLifecycle()
     val colors = AppTheme.colors
+    val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     var failureShown by remember { mutableStateOf(false) }
 
@@ -134,18 +139,23 @@ fun SettingsScreen(
                 }
                 Divider()
 
-                SectionLabel("CREDITS")
+                SectionLabel("ABOUT")
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button) { uriHandler.openUri(GITHUB_URL) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text("Source code on GitHub", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
+                    Text(GITHUB_URL.removePrefix("https://"), color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
+                }
                 Text(
-                    "© OpenStreetMap contributors, geoBoundaries",
+                    "App version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                     Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = colors.muted,
                     fontSize = 14.sp,
                 )
-                Divider()
-
-                Box(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
-                    Text("App version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = colors.muted, fontSize = 14.sp)
-                }
             }
 
             if (failureShown) {
