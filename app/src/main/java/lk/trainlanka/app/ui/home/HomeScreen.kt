@@ -37,10 +37,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxDefaults
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -205,7 +206,9 @@ private fun SwipeToRemove(
     onRemove: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val state = rememberSwipeToDismissBoxState()
+    // Not saveable: LazyColumn restores saved state by key, so an undone route would come back dismissed and be removed again.
+    val positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val state = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, positionalThreshold) }
     SwipeToDismissBox(
         state,
         backgroundContent = {
