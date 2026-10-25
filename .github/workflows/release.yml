@@ -98,12 +98,12 @@ jobs:
           base64 --decode <<< "$KEYSTORE_BASE64" > "$RELEASE_KEYSTORE"
           ./gradlew --console=plain :app:assembleRelease \
             -PappVersionName="$VERSION" -PappVersionCode="$VERSION_CODE"
-          mv "app/build/outputs/apk/release/TrainLanka-$VERSION-release.apk" TrainLanka.apk
+          mv "app/build/outputs/apk/release/TrainLanka-$VERSION-release.apk" "TrainLanka-v$VERSION.apk"
 
       - uses: actions/upload-artifact@v7
         with:
           name: release-apk
-          path: TrainLanka.apk
+          path: TrainLanka-v${{ inputs.version }}.apk
           if-no-files-found: error
 
   publish:
@@ -116,12 +116,12 @@ jobs:
         with:
           name: release-apk
 
-      # Not marked pre-release: the landing page links to releases/latest.
+      # Not marked pre-release: the landing page reads releases/latest.
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ inputs.version }}
         run: |
-          gh release create "v$VERSION" TrainLanka.apk \
+          gh release create "v$VERSION" "TrainLanka-v$VERSION.apk" \
             --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes

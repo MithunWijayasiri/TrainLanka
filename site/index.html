@@ -286,7 +286,7 @@ footer a { color: #fff; }
         <h1>Sri Lankan train times, even with no signal</h1>
         <p class="lede">Train Lanka keeps the whole timetable on your phone. Pick two stations and see your next train, with no account and no internet needed.</p>
         <div class="actions">
-          <a class="button" href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk">
+          <a class="button" data-apk href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
             Download APK
           </a>
@@ -393,7 +393,7 @@ footer a { color: #fff; }
       <ol class="steps">
         <li>
           <h3>Download the APK</h3>
-          <p>Tap <a href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk">Download APK</a> on your Android phone. It's the latest release from GitHub.</p>
+          <p>Tap <a data-apk href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest">Download APK</a> on your Android phone. It's the latest release from GitHub.</p>
         </li>
         <li>
           <h3>Allow the install</h3>
@@ -459,7 +459,7 @@ footer a { color: #fff; }
       </div>
       <nav aria-label="Footer">
         <ul class="foot-links">
-          <li><a href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk">Download APK</a></li>
+          <li><a data-apk href="https://github.com/MithunWijayasiri/TrainLanka/releases/latest">Download APK</a></li>
           <li><a href="https://github.com/MithunWijayasiri/TrainLanka/releases">All releases</a></li>
           <li><a href="https://github.com/MithunWijayasiri/TrainLanka/issues/new/choose">Report a problem</a></li>
           <li><a href="https://github.com/MithunWijayasiri/TrainLanka">Source code</a></li>
@@ -473,6 +473,18 @@ footer a { color: #fff; }
     </div>
   </div>
 </footer>
+
+<script>
+  // Points Download links at the latest release's APK; if this fails they open the release page.
+  fetch('https://api.github.com/repos/MithunWijayasiri/TrainLanka/releases/latest')
+    .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+    .then((release) => {
+      const apk = release.assets.find((asset) => asset.name.endsWith('.apk'));
+      if (!apk) return;
+      for (const link of document.querySelectorAll('a[data-apk]')) link.href = apk.browser_download_url;
+    })
+    .catch(() => {});
+</script>
 
 </body>
 </html>

@@ -38,7 +38,7 @@ Requires Android 10 (API 29) or newer. English only for now.
 
 **Option 1 (recommended): download the latest release.**
 
-1. On your Android phone, download [`TrainLanka.apk`](https://github.com/MithunWijayasiri/TrainLanka/releases/latest/download/TrainLanka.apk) from the [latest release](https://github.com/MithunWijayasiri/TrainLanka/releases/latest), or use the button on the [Train Lanka website](https://mithunwijayasiri.github.io/TrainLanka/).
+1. On your Android phone, download `TrainLanka-v<version>.apk` from the [latest release](https://github.com/MithunWijayasiri/TrainLanka/releases/latest), or use the button on the [Train Lanka website](https://mithunwijayasiri.github.io/TrainLanka/).
 2. Open the file. If Android asks, let your browser or file manager install unknown apps.
 
 To update, install the newer APK over the old one. Your starred and recent routes stay.
