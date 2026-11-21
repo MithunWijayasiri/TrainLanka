@@ -13,9 +13,11 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import lk.trainlanka.app.data.Place
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.domain.Trip
 import lk.trainlanka.app.ui.home.HomeScreen
+import lk.trainlanka.app.ui.picker.PickTarget
 import lk.trainlanka.app.ui.picker.PickerScreen
 import lk.trainlanka.app.ui.results.ResultsScreen
 import lk.trainlanka.app.ui.settings.SettingsScreen
@@ -34,18 +36,20 @@ fun AppNav(
     LaunchedEffect(nav) { launches.collect { openFromWidget(vm, nav, it) } }
 
     NavHost(nav, startDestination = HomeDest) {
+        val setPlace = { entry: NavBackStackEntry, place: Place -> entry.ifResumed { nav.navigate(PlacePickerDest(place)) } }
         composable<HomeDest> { entry ->
             HomeScreen(
                 vm,
                 onPickStation = { field -> entry.ifResumed { nav.navigate(PickerDest(field)) } },
                 onOpenRoute = { route -> entry.ifResumed { nav.navigate(ResultsDest(route.fromId, route.toId)) } },
                 onOpenSettings = { entry.ifResumed { nav.navigate(SettingsDest) } },
+                onSetPlace = { setPlace(entry, it) },
             )
         }
         composable<PickerDest> { entry ->
             PickerScreen(
                 vm,
-                entry.toRoute<PickerDest>().field,
+                PickTarget.Search(entry.toRoute<PickerDest>().field),
                 onDone = { entry.ifResumed { nav.popBackStack() } },
                 onOpenRoute = { route ->
                     entry.ifResumed {
@@ -53,6 +57,14 @@ fun AppNav(
                         nav.navigate(ResultsDest(route.fromId, route.toId)) { popUpTo(HomeDest) }
                     }
                 },
+            )
+        }
+        composable<PlacePickerDest> { entry ->
+            PickerScreen(
+                vm,
+                PickTarget.Saved(entry.toRoute<PlacePickerDest>().place),
+                onDone = { entry.ifResumed { nav.popBackStack() } },
+                onOpenRoute = { error("Saved place picker never opens a route") },
             )
         }
         composable<ResultsDest> { entry ->
@@ -70,7 +82,7 @@ fun AppNav(
             StopsScreen(vm, dest.trainId, Route(dest.from, dest.to), onBack = { entry.ifResumed { nav.popBackStack() } })
         }
         composable<SettingsDest> { entry ->
-            SettingsScreen(vm, onBack = { entry.ifResumed { nav.popBackStack() } })
+            SettingsScreen(vm, onBack = { entry.ifResumed { nav.popBackStack() } }, onSetPlace = { setPlace(entry, it) })
         }
     }
 }

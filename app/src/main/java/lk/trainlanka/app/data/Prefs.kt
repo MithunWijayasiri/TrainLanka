@@ -1,8 +1,10 @@
 package lk.trainlanka.app.data
 
 import android.content.Context
+import androidx.annotation.Keep
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -34,6 +36,16 @@ data class RemovedRoute(
 )
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+// Saved station slot. Navigation resolves enum route arguments by class name; R8 must not rename it.
+@Keep
+enum class Place(
+    val label: String,
+) {
+    HOME("Home"),
+    WORK("Work"),
+    OTHER("Other"),
+}
 
 data class Settings(
     val theme: ThemeMode,
@@ -68,6 +80,10 @@ class Prefs(
         }
     val checkStatus: Flow<CheckStatus> = store.data.map { CheckStatus(it[CHECK_AT], it[CHECK_FAILED] ?: false) }
     val dismissedUpdate: Flow<String?> = store.data.map { it[DISMISSED_UPDATE] }
+
+    /** Station id per saved place; unset places are absent. */
+    val places: Flow<Map<Place, Int>> =
+        store.data.map { data -> Place.entries.mapNotNull { place -> data[placeKey(place)]?.let { place to it } }.toMap() }
 
     suspend fun toggleStar(route: Route) =
         store.edit {
@@ -143,6 +159,13 @@ class Prefs(
 
     suspend fun dismissUpdate(version: String) = store.edit { it[DISMISSED_UPDATE] = version }
 
+    suspend fun setPlace(
+        place: Place,
+        stationId: Int,
+    ) = store.edit { it[placeKey(place)] = stationId }
+
+    suspend fun clearPlace(place: Place) = store.edit { it.remove(placeKey(place)) }
+
     private companion object {
         const val MAX_RECENT = 3
         val STARRED = stringPreferencesKey("starred")
@@ -158,5 +181,7 @@ class Prefs(
         fun routes(value: String?): List<Route> = value?.split(',')?.filter(String::isNotEmpty)?.map(Route::parse) ?: emptyList()
 
         fun join(list: List<Route>) = list.joinToString(",") { it.key() }
+
+        fun placeKey(place: Place) = intPreferencesKey("place_${place.name.lowercase()}")
     }
 }

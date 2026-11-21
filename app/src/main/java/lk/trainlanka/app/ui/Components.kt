@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,11 +19,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +37,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
@@ -45,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import lk.trainlanka.app.R
+import lk.trainlanka.app.data.Place
 import lk.trainlanka.app.ui.theme.AppTheme
 
 @Composable
@@ -361,3 +375,84 @@ fun HolidayNote(modifier: Modifier = Modifier) {
         Text("Times may differ on Poya/public holidays", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+val Place.icon: ImageVector
+    get() =
+        when (this) {
+            Place.HOME -> Icons.Rounded.Home
+            Place.WORK -> Icons.Rounded.Work
+            Place.OTHER -> Icons.Rounded.Place
+        }
+
+/** Saved place shortcut; an unset place shows as a dashed "+ label" chip. */
+@Composable
+fun PlaceChip(
+    place: Place,
+    set: Boolean,
+    onLongClick: (() -> Unit)? = null,
+    onClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    val outline = MaterialTheme.colorScheme.outline
+    Row(
+        Modifier
+            .height(40.dp)
+            .clip(CircleShape)
+            .then(if (set) Modifier.background(colors.card) else Modifier.dashedPill(outline))
+            .combinedClickable(
+                role = Role.Button,
+                onLongClickLabel = onLongClick?.let { "Edit ${place.label}" },
+                onLongClick = onLongClick,
+                onClickLabel = if (set) null else "Set ${place.label}",
+                onClick = onClick,
+            ).padding(start = 10.dp, end = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            if (set) place.icon else Icons.Rounded.Add,
+            contentDescription = null,
+            Modifier.size(18.dp),
+            tint = if (set) MaterialTheme.colorScheme.primary else colors.muted,
+        )
+        Text(
+            place.label,
+            color = if (set) MaterialTheme.colorScheme.onSurface else colors.muted,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+        )
+    }
+}
+
+/** [place] icon in a tinted circle; outlined when the place is not set. */
+@Composable
+fun PlaceIcon(
+    place: Place,
+    set: Boolean = true,
+) {
+    val circle = Modifier.size(36.dp).clip(CircleShape)
+    Box(
+        if (set) circle.background(AppTheme.colors.highlight) else circle.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            place.icon,
+            contentDescription = null,
+            Modifier.size(20.dp),
+            tint = if (set) MaterialTheme.colorScheme.primary else AppTheme.colors.muted,
+        )
+    }
+}
+
+private fun Modifier.dashedPill(color: Color) =
+    drawBehind {
+        val stroke = 1.dp.toPx()
+        drawRoundRect(
+            color,
+            topLeft = Offset(stroke / 2, stroke / 2),
+            size = Size(size.width - stroke, size.height - stroke),
+            cornerRadius = CornerRadius(size.height / 2),
+            style = Stroke(stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
+        )
+    }
