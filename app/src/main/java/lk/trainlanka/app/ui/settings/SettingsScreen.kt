@@ -1,17 +1,25 @@
 package lk.trainlanka.app.ui.settings
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,6 +32,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -33,11 +42,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import lk.trainlanka.app.BuildConfig
+import lk.trainlanka.app.data.Place
 import lk.trainlanka.app.data.ThemeMode
+import lk.trainlanka.app.data.Timetable
 import lk.trainlanka.app.domain.formatCheckTime
 import lk.trainlanka.app.domain.formatVersionDate
 import lk.trainlanka.app.ui.AppViewModel
 import lk.trainlanka.app.ui.OutlinedPill
+import lk.trainlanka.app.ui.PlaceIcon
 import lk.trainlanka.app.ui.SNACKBAR_MILLIS
 import lk.trainlanka.app.ui.SectionLabel
 import lk.trainlanka.app.ui.Segment
@@ -53,8 +65,11 @@ private const val GITHUB_URL = "https://github.com/MithunWijayasiri/TrainLanka"
 fun SettingsScreen(
     vm: AppViewModel,
     onBack: () -> Unit,
+    onSetPlace: (Place) -> Unit,
 ) {
-    val version = (vm.timetable.collectAsStateWithLifecycle().value ?: return).version
+    val tt = vm.timetable.collectAsStateWithLifecycle().value ?: return
+    val version = tt.version
+    val places by vm.places.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val status by vm.checkStatus.collectAsStateWithLifecycle()
     val pendingVersion by vm.pendingVersion.collectAsStateWithLifecycle()
@@ -86,6 +101,15 @@ fun SettingsScreen(
                     Segment("Dark", settings.theme == ThemeMode.DARK) { vm.setTheme(ThemeMode.DARK) }
                     Segment("System", settings.theme == ThemeMode.SYSTEM) { vm.setTheme(ThemeMode.SYSTEM) }
                 }
+
+                SectionLabel("SAVED PLACES", Modifier.padding(top = 8.dp))
+                SavedPlaces(tt, places, onSet = onSetPlace, onClear = { vm.clearPlace(it) })
+                Text(
+                    "Tap a saved place on Home to make it your destination.",
+                    Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+                    color = colors.muted,
+                    fontSize = 13.sp,
+                )
 
                 SectionLabel("TIME FORMAT", Modifier.padding(top = 8.dp))
                 OptionBar {
@@ -171,6 +195,57 @@ fun SettingsScreen(
             if (failureShown) {
                 Snackbar("Couldn’t update. Still using the saved timetable.", Modifier.align(Alignment.BottomCenter)) {
                     TextAction("Retry", underline = true, color = colors.amber, onClick = check)
+                }
+            }
+        }
+    }
+}
+
+/** One row per place: tap sets or changes it, × clears it. */
+@Composable
+private fun SavedPlaces(
+    tt: Timetable,
+    places: Map<Place, Int>,
+    onSet: (Place) -> Unit,
+    onClear: (Place) -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .clip(shape),
+    ) {
+        Place.entries.forEachIndexed { i, place ->
+            if (i > 0) Divider()
+            val id = places[place]
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .clickable(role = Role.Button, onClickLabel = if (id == null) "Set" else "Change") { onSet(place) }
+                    .padding(start = 12.dp, end = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PlaceIcon(place, set = id != null)
+                Column(Modifier.weight(1f)) {
+                    Text(place.label, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(id?.let { tt.station(it).name } ?: "Not set", color = AppTheme.colors.muted, fontSize = 13.sp, maxLines = 1)
+                }
+                if (id == null) {
+                    Text(
+                        "Set",
+                        Modifier.padding(end = 12.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                } else {
+                    IconButton(onClick = { onClear(place) }) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Remove ${place.label}", tint = AppTheme.colors.muted)
+                    }
                 }
             }
         }

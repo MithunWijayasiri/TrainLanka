@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -67,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import lk.trainlanka.app.data.Place
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.domain.MatchKind
 import lk.trainlanka.app.domain.OTHER_PROVINCE
@@ -75,19 +78,36 @@ import lk.trainlanka.app.domain.groupByLetter
 import lk.trainlanka.app.domain.searchStations
 import lk.trainlanka.app.ui.AppViewModel
 import lk.trainlanka.app.ui.PickerField
+import lk.trainlanka.app.ui.PlaceChip
+import lk.trainlanka.app.ui.icon
 import lk.trainlanka.app.ui.rememberNearestStationAction
 import lk.trainlanka.app.ui.theme.AppTheme
 
-/** Once both stations are set and have direct trains, [onOpenRoute] replaces [onDone]. */
+/** What a picked station fills: a search field, or a saved place. */
+sealed interface PickTarget {
+    data class Search(
+        val field: PickerField,
+    ) : PickTarget
+
+    data class Saved(
+        val place: Place,
+    ) : PickTarget
+}
+
+/**
+ * A search field pick ends with [onOpenRoute] instead of [onDone] once both stations are set and have direct trains.
+ * A saved place pick always ends with [onDone].
+ */
 @Composable
 fun PickerScreen(
     vm: AppViewModel,
-    field: PickerField,
+    target: PickTarget,
     onDone: () -> Unit,
     onOpenRoute: (Route) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val timetable by vm.timetable.collectAsStateWithLifecycle()
+    val places by vm.places.collectAsStateWithLifecycle()
 
     fun finish(picked: Boolean) {
         val route = vm.openableRoute()?.takeIf { picked }
@@ -101,8 +121,17 @@ fun PickerScreen(
     val byLetter = remember(tt) { groupByLetter(tt.stations) }
 
     fun pick(id: Int) {
-        if (field == PickerField.FROM) vm.setFrom(id) else vm.setTo(id)
-        finish(picked = true)
+        when (target) {
+            is PickTarget.Saved -> {
+                vm.setPlace(target.place, id)
+                onDone()
+            }
+
+            is PickTarget.Search -> {
+                if (target.field == PickerField.FROM) vm.setFrom(id) else vm.setTo(id)
+                finish(picked = true)
+            }
+        }
     }
 
     val searching = query.isNotBlank()
@@ -115,11 +144,18 @@ fun PickerScreen(
                 query = it
                 scope.launch { listState.scrollToItem(0) }
             },
-            placeholder = if (field == PickerField.FROM) "Where are you boarding?" else "Where are you going?",
+            placeholder =
+                when (target) {
+                    is PickTarget.Saved -> "Choose your ${target.place.label} station"
+                    is PickTarget.Search -> if (target.field == PickerField.FROM) "Where are you boarding?" else "Where are you going?"
+                },
             onBack = onDone,
             onSubmit = { matches.firstOrNull()?.let { pick(it.station.id) } },
         )
-        if (field == PickerField.FROM) NearestPill(useNearest)
+        when (target) {
+            is PickTarget.Saved -> SavingAs(target.place)
+            is PickTarget.Search -> Shortcuts(useNearest.takeIf { target.field == PickerField.FROM }, places, ::pick)
+        }
         Box(Modifier.fillMaxSize()) {
             LazyColumn(Modifier.fillMaxSize(), state = listState) {
                 if (searching) {
@@ -241,12 +277,47 @@ private fun SearchField(
     }
 }
 
+/** Nearest station (From only) and saved places; a saved place fills the field like a list pick. */
+@Composable
+private fun Shortcuts(
+    nearest: (() -> Unit)?,
+    places: Map<Place, Int>,
+    onPick: (Int) -> Unit,
+) {
+    if (nearest == null && places.isEmpty()) return
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (nearest != null) NearestPill(nearest)
+        for ((place, id) in places) PlaceChip(place, set = true) { onPick(id) }
+    }
+}
+
+@Composable
+private fun SavingAs(place: Place) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 12.dp)
+            .background(AppTheme.colors.highlight, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(place.icon, contentDescription = null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+        Text("Saving as ${place.label}", fontSize = 14.sp)
+    }
+}
+
 @Composable
 private fun NearestPill(onClick: () -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
     Row(
         Modifier
-            .padding(start = 16.dp, top = 4.dp, bottom = 12.dp)
             .height(40.dp)
             .clip(CircleShape)
             .border(1.dp, primary, CircleShape)

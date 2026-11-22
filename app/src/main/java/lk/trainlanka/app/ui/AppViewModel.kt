@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import lk.trainlanka.app.TrainLankaApp
 import lk.trainlanka.app.data.CheckResult
 import lk.trainlanka.app.data.CheckStatus
+import lk.trainlanka.app.data.Place
 import lk.trainlanka.app.data.RemovedRoute
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.data.Settings
@@ -61,6 +62,11 @@ class AppViewModel(
     val recent: StateFlow<List<Route>> =
         combine(prefs.recent, timetable) { list, tt -> valid(list, tt) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Saved places whose station still exists in the current timetable. */
+    val places: StateFlow<Map<Place, Int>> =
+        combine(prefs.places, timetable) { map, tt -> if (tt == null) emptyMap() else map.filterValues { it in tt.stationsById } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     val checkStatus: StateFlow<CheckStatus> =
         prefs.checkStatus
@@ -147,6 +153,13 @@ class AppViewModel(
             prefs.restore(removed)
             refreshWidget()
         }
+
+    fun setPlace(
+        place: Place,
+        stationId: Int,
+    ) = viewModelScope.launch { prefs.setPlace(place, stationId) }
+
+    fun clearPlace(place: Place) = viewModelScope.launch { prefs.clearPlace(place) }
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { prefs.setTheme(mode) }
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,20 +30,24 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxState
@@ -66,6 +71,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -85,7 +91,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import lk.trainlanka.app.R
-import lk.trainlanka.app.data.RemovedRoute
+import lk.trainlanka.app.data.Place
 import lk.trainlanka.app.data.Route
 import lk.trainlanka.app.data.Timetable
 import lk.trainlanka.app.domain.formatCountdown
@@ -99,6 +105,8 @@ import lk.trainlanka.app.ui.Banner
 import lk.trainlanka.app.ui.EmptyState
 import lk.trainlanka.app.ui.LocationProblemDialog
 import lk.trainlanka.app.ui.PickerField
+import lk.trainlanka.app.ui.PlaceChip
+import lk.trainlanka.app.ui.PlaceIcon
 import lk.trainlanka.app.ui.PrimaryButton
 import lk.trainlanka.app.ui.SNACKBAR_MILLIS
 import lk.trainlanka.app.ui.Snackbar
@@ -119,6 +127,7 @@ fun HomeScreen(
     onPickStation: (PickerField) -> Unit,
     onOpenRoute: (Route) -> Unit,
     onOpenSettings: () -> Unit,
+    onSetPlace: (Place) -> Unit,
 ) {
     val tt by vm.timetable.collectAsStateWithLifecycle()
     val starred by vm.starred.collectAsStateWithLifecycle()
@@ -147,14 +156,40 @@ fun HomeScreen(
     }
 
     val scope = rememberCoroutineScope()
-    var removed by remember { mutableStateOf<RemovedRoute?>(null) }
-    LaunchedEffect(removed) {
-        if (removed != null) {
+    var undo by remember { mutableStateOf<Undo?>(null) }
+    LaunchedEffect(undo) {
+        if (undo != null) {
             delay(SNACKBAR_MILLIS)
-            removed = null
+            undo = null
         }
     }
-    val remove = { route: Route -> scope.launch { removed = vm.removeRoute(route) } }
+    val remove = { route: Route ->
+        scope.launch {
+            val removed = vm.removeRoute(route)
+            undo = Undo(if (removed.starred) "Removed from starred" else "Removed from recent") { vm.restoreRoute(removed) }
+        }
+    }
+
+    val places by vm.places.collectAsStateWithLifecycle()
+    var editing by remember { mutableStateOf<Place?>(null) }
+    tt?.let { timetable ->
+        val place = editing ?: return@let
+        val id = places[place] ?: return@let
+        PlaceSheet(
+            place,
+            timetable.station(id).name,
+            onDismiss = { editing = null },
+            onChange = {
+                editing = null
+                onSetPlace(place)
+            },
+            onRemove = {
+                editing = null
+                vm.clearPlace(place)
+                undo = Undo("Removed ${place.label}") { vm.setPlace(place, id) }
+            },
+        )
+    }
 
     locationProblem?.let { LocationProblemDialog(it) { vm.setLocationProblem(null) } }
     LightStatusBarIcons(vm)
@@ -175,7 +210,7 @@ fun HomeScreen(
             val header: @Composable () -> Unit = {
                 Column {
                     Band(onOpenSettings, Modifier.overlapNext(CardOverlap), subtitle = bandSubtitle(now, starred.size))
-                    SearchCard(vm, timetable, onPickStation, open)
+                    SearchCard(vm, timetable, onPickStation, onSetPlace, { editing = it }, open)
                     bannerVersion?.let { version ->
                         Banner(
                             icon = { Icon(Icons.Outlined.Download, contentDescription = null, Modifier.size(20.dp)) },
@@ -229,16 +264,22 @@ fun HomeScreen(
                 .windowInsetsTopHeight(WindowInsets.safeDrawing)
                 .background(colors.band.first().second),
         )
-        removed?.let { r ->
-            Snackbar(if (r.starred) "Removed from starred" else "Removed from recent", Modifier.align(Alignment.BottomCenter)) {
+        undo?.let { u ->
+            Snackbar(u.text, Modifier.align(Alignment.BottomCenter)) {
                 TextAction("Undo", underline = true, color = MaterialTheme.colorScheme.inversePrimary) {
-                    removed = null
-                    vm.restoreRoute(r)
+                    undo = null
+                    u.restore()
                 }
             }
         }
     }
 }
+
+/** Snackbar message and the action that undoes it. */
+private class Undo(
+    val text: String,
+    val restore: () -> Unit,
+)
 
 /** Swipe left to remove; also exposed as an accessibility action. */
 @Composable
@@ -365,17 +406,21 @@ private fun Band(
 
 /**
  * Raised From/To card with a round swap button, plus a Show trains button that is disabled until the route has direct trains.
- * Filling From by location opens the route when To is already set.
+ * Filling From by location, or To by a saved place chip, opens the route when the other station is already set.
+ * Long-press on a saved place chip edits it; an unset chip sets it.
  */
 @Composable
 private fun SearchCard(
     vm: AppViewModel,
     tt: Timetable,
     onPickStation: (PickerField) -> Unit,
+    onSetPlace: (Place) -> Unit,
+    onEditPlace: (Place) -> Unit,
     onOpenRoute: (Route) -> Unit,
 ) {
     val from by vm.from.collectAsStateWithLifecycle()
     val to by vm.to.collectAsStateWithLifecycle()
+    val places by vm.places.collectAsStateWithLifecycle()
     val locate = rememberNearestStationAction(vm) { found -> if (found) vm.openableRoute()?.let(onOpenRoute) }
     val picked = remember(from, to) { vm.pickedRoute() }
     val openable = remember(tt, picked) { picked?.takeIf { hasDirectTrains(tt, it) } }
@@ -429,6 +474,25 @@ private fun SearchCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Rounded.SwapVert, contentDescription = "Swap stations", Modifier.size(20.dp))
+            }
+        }
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(start = 16.dp, top = 4.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            for (place in Place.entries) {
+                val id = places[place]
+                if (id == null) {
+                    PlaceChip(place, set = false) { onSetPlace(place) }
+                } else {
+                    PlaceChip(place, set = true, onLongClick = { onEditPlace(place) }) {
+                        vm.setTo(id)
+                        vm.openableRoute()?.let(onOpenRoute)
+                    }
+                }
             }
         }
         PrimaryButton(
@@ -599,5 +663,61 @@ private fun RecentRow(
         Icon(Icons.Rounded.History, contentDescription = null, tint = AppTheme.colors.muted)
         Text(tt.routeLabel(route), Modifier.weight(1f), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = AppTheme.colors.muted)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaceSheet(
+    place: Place,
+    station: String,
+    onDismiss: () -> Unit,
+    onChange: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = AppTheme.colors.raised) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PlaceIcon(place)
+            Column {
+                Text(place.label, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(station, fontSize = 14.sp, color = AppTheme.colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        SheetAction(Icons.Rounded.Edit, "Change station", AppTheme.colors.muted, onClick = onChange)
+        SheetAction(
+            Icons.Rounded.Delete,
+            "Remove ${place.label}",
+            iconTint = MaterialTheme.colorScheme.error,
+            textColor = MaterialTheme.colorScheme.error,
+            onClick = onRemove,
+        )
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun SheetAction(
+    icon: ImageVector,
+    text: String,
+    iconTint: Color,
+    textColor: Color = Color.Unspecified,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = iconTint)
+        Text(text, fontSize = 16.sp, color = textColor)
     }
 }
